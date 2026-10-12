@@ -1,4 +1,4 @@
-name = "bro-ai-multi-ai"
+name = "bro_ai"
 main = "worker.js"
 compatibility_date = "2026-10-12"
 
