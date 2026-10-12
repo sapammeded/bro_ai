@@ -1,0 +1,10 @@
+{
+  "name": "BRO AI Personal Command Center",
+  "short_name": "BRO AI",
+  "description": "Pusat kendali webapp pribadi dan asisten suara",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#080d19",
+  "theme_color": "#0b1020",
+  "icons": []
+}
