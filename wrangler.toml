@@ -1,7 +1,9 @@
 name = "bro-ai"
-main = "worker.js"
+main = "./worker.js"
 compatibility_date = "2026-10-12"
+workers_dev = true
 
+# Cloudflare must deploy the Worker entrypoint, not only static assets.
 # Configure BRO_ALLOWED_ORIGIN in production as the exact frontend origin,
 # e.g. https://USERNAME.github.io or https://your-custom-domain.example
 # Do not put provider API keys or BRO_ACCESS_TOKEN in this file.
