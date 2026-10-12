@@ -1,0 +1,7 @@
+name = "bro-ai-multi-ai"
+main = "worker.js"
+compatibility_date = "2026-10-12"
+
+# Configure BRO_ALLOWED_ORIGIN in production as the exact frontend origin,
+# e.g. https://USERNAME.github.io or https://your-custom-domain.example
+# Do not put provider API keys or BRO_ACCESS_TOKEN in this file.

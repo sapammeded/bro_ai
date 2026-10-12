@@ -1,10 +1,10 @@
 {
-  "name": "BRO AI Personal Command Center",
+  "name": "BRO AI Multi-AI Voice Assistant",
   "short_name": "BRO AI",
-  "description": "Pusat kendali webapp pribadi dan asisten suara",
+  "description": "Asisten pribadi multi-AI dengan suara Indonesia.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#080d19",
+  "background_color": "#080c17",
   "theme_color": "#0b1020",
   "icons": []
 }

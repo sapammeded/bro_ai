@@ -1,44 +1,24 @@
-# BRO AI Personal Command Center — v0.1.0
+# BRO AI Multi-AI v0.4.0 — paket implementasi
 
-Versi awal yang bisa di-host di GitHub Pages, dibuat untuk Android dan berorientasi biaya Rp0.
+Paket ini mempertahankan `index.html` hasil upgrade Claude dan melengkapinya dengan Cloudflare Worker router.
 
-## Fitur
-- UI mobile-first berbahasa Indonesia.
-- Pintasan webapp bisa ditambah, diedit, dan disimpan lokal di browser.
-- Pengenalan ucapan Indonesia melalui Web Speech API jika didukung browser.
-- Perintah suara dasar untuk membuka webapp, menyiapkan prompt, dan membuka Gemini.
-- Text-to-speech untuk respons singkat jika tersedia.
-- Pembuat prompt audit/debug/QA dan tombol salin.
-- Riwayat aktivitas tersimpan di localStorage.
-- Service worker untuk cache dasar setelah kunjungan pertama.
+## Isi paket
+- `index.html` — frontend BRO AI v0.4.0 (dari file yang diberikan).
+- `worker.js` — backend untuk OpenAI, Claude, Gemini, DeepSeek.
+- `wrangler.toml` — konfigurasi dasar Cloudflare Worker.
+- `manifest.webmanifest`, `sw.js` — PWA dan cache statis.
+- `SETUP_ID.md` — langkah instalasi Bahasa Indonesia.
 
-## Batasan penting
-- Tidak ada API key atau backend AI yang disertakan.
-- Gemini dibuka sebagai layanan eksternal; halaman ini tidak dapat membaca percakapan Gemini atau mengirim prompt otomatis ke akun pengguna. Prompt disiapkan/disalin, lalu tempel ke Gemini bila diperlukan.
-- Pengenalan suara memerlukan browser yang mendukung Web Speech API, izin mikrofon, dan biasanya koneksi internet. Uji di Chrome Android. Sesi dapat berhenti otomatis.
-- "Wake word" hands-free selalu aktif tidak dijanjikan: browser mobile membatasi mikrofon latar belakang dan pengenalan suara.
-- Menambahkan URL hanya membuat pintasan. Aplikasi eksternal belum dikendalikan atau diaudit otomatis.
-- `localStorage` hanya tersedia pada browser/perangkat/origin yang sama. Hapus data browser dapat menghapus konfigurasi dan riwayat.
-- Untuk privasi, jangan simpan password, token, API key, atau data sensitif.
+## Gambaran arsitektur
+Browser/GitHub Pages → Cloudflare Worker → API provider yang dipilih.
 
-## Pasang ke GitHub Pages
-1. Ekstrak ZIP.
-2. Buat repository GitHub baru, misalnya `bro-ai-command-center`.
-3. Upload `index.html`, `manifest.webmanifest`, `sw.js`, dan `README.md` ke root repository.
-4. Buka **Settings → Pages**.
-5. Pilih **Deploy from a branch**, branch `main`, folder `/(root)`, lalu Save.
-6. Tunggu deployment selesai, kemudian buka URL Pages lewat Chrome Android.
-7. Gunakan menu Chrome **Add to Home screen** atau **Install app** jika tersedia.
-8. Izinkan mikrofon saat diminta untuk menguji fitur suara.
+Kunci API provider hanya disimpan di Cloudflare Worker Secrets. Token akses frontend harus sama dengan `BRO_ACCESS_TOKEN`, dan Worker memvalidasinya pada `/health` serta `/chat`.
 
-## Checklist pengujian
-- [ ] Halaman tampil pada lebar layar Android.
-- [ ] Tambah/edit/hapus tidak tersedia untuk aplikasi bawaan; tambah dan edit harus tersimpan setelah refresh.
-- [ ] Tombol Buka membuka URL yang sudah diisi.
-- [ ] Buat prompt, salin prompt, dan buka Gemini berfungsi.
-- [ ] Uji mikrofon setelah memberikan izin; jika tidak didukung, gunakan Ketik perintah.
-- [ ] Uji offline setelah kunjungan pertama untuk memastikan cache dasar tersedia.
-- [ ] Verifikasi URL setiap webapp sebelum dipakai.
-
-## Status verifikasi
-Paket dibuat dan diperiksa secara statis untuk struktur file serta JavaScript dasar. Belum diuji langsung di perangkat Android nyata atau melalui deployment GitHub Pages; jangan anggap fitur suara atau instalasi PWA sudah terverifikasi sampai checklist di atas dilakukan.
+## Penting
+- Paket ini belum dideploy ke akun Cloudflare/GitHub milik pengguna.
+- Pemeriksaan lokal/sintaks tidak membuktikan API provider hidup. Setelah deployment, gunakan tombol **Tes**, lalu kirim satu pesan uji.
+- API key/usage provider bisa berbayar. Langganan ChatGPT/Claude/Gemini di aplikasi konsumen tidak otomatis mencakup API.
+- `SpeechRecognition` dan suara TTS tergantung dukungan Chrome/Android serta bahasa/voice yang terpasang.
+- Catatan, riwayat, URL Worker, dan token di frontend disimpan di localStorage perangkat/browser. Jangan gunakan token ini sebagai satu-satunya pengamanan untuk data yang sangat sensitif.
+- CORS bukan pengganti autentikasi. Gunakan `BRO_ALLOWED_ORIGIN` untuk membatasi origin frontend.
+- Worker tidak memberikan rate-limit global persisten. Untuk produksi publik, aktifkan rate limiting/WAF di Cloudflare dan rotasi token bila bocor.
