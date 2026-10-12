@@ -19,7 +19,7 @@ const PROVIDERS = {
   gemini: {
     secret: "GEMINI_API_KEY",
     model: "GEMINI_MODEL",
-    defaultModel: "gemini-2.5-flash",
+    defaultModel: "gemini-3.8-flash",
     endpoint: null,
   },
   deepseek: {
