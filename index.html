@@ -120,10 +120,33 @@ function startMic(force){if(listening||busy||(!force&&window.speechSynthesis&&sp
 function localReply(u,a){addMessage('user',u,'LO');persistMsg('user',u,'LO');addMessage('assistant',a,'BRO');persistMsg('assistant',a,'BRO');speak(a)}
 function saveSettings(){save('bro_ai_settings_v03',settings)}
 function localCmd(t){let m;
-if(m=t.match(/^(?:buka|open|jalankan)\s+(.+?)[.!]?$/i)){const q=m[1].toLowerCase();const a=webapps.find(x=>{const n=x.name.toLowerCase();return n===q||n.includes(q)||q.includes(n)});if(!a)return false;const w=window.open(a.url,'_blank');if(w)w.opener=null;localReply(t,'Membuka '+a.name+'. Kalau tidak terbuka, ketuk tombol ↗ '+a.name+' di daftar webapp.');return true}
-if(m=t.match(/^(?:ingat|catat)\s*(?:bahwa|:)\s*(.+)$/i)){settings.notes=(settings.notes||[]).concat(m[1].slice(0,200)).slice(-20);saveSettings();localReply(t,'Oke, dicatat. Total catatan: '+settings.notes.length+'.');return true}
-if(/^(?:lupakan semua|hapus (?:semua )?catatan)/i.test(t)){settings.notes=[];saveSettings();localReply(t,'Semua catatan dihapus.');return true}
-if(/^(?:daftar catatan|apa (?:yang )?(?:lo|kamu) ingat)/i.test(t)){const n=settings.notes||[];localReply(t,n.length?n.map((x,i)=>(i+1)+'. '+x).join('\n'):'Belum ada catatan.');return true}
+const original=String(t||'').trim();
+const normalizeQ=v=>String(v||'').toLowerCase().normalize('NFKD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+let command=original.replace(/^(?:(?:brother|bro|bang|gendis|chantika|clara|denada|bro ai)[,\\s:!-]+)+/i,'').trim();
+if(m=command.match(/^(?:tolong\\s+)?(?:buka|bukain|bukakan|bukakanlah|open|jalankan|akses|kunjungi|masuk(?:kan)?\\s+ke)\\s+(.+?)[.!?]*$/i)){
+  let q=normalizeQ(m[1]);
+  q=q.replace(/\\b(web ?app|aplikasi|website|web|punya|milik|gw|gua|gue|lo|lu|aku|saya|dong|ya|bro|brother|yang|di hp gw)\\b/g,' ').replace(/\\s+/g,' ').trim();
+  const aliases=[
+    {name:'Vehicle LifeBook',url:'https://sapammeded.github.io/vehiclelifebook/',keys:['vehicle book','vehicle lifebook','vehiclelife book','vehicle life book','lifebook kendaraan','vehicle logbook']},
+  ];
+  const candidates=[...webapps,...aliases.filter(x=>!webapps.some(a=>normalizeQ(a.name)===normalizeQ(x.name)))];
+  const a=candidates.find(x=>{
+    const name=normalizeQ(x.name);
+    const keys=(x.keys||[]).map(normalizeQ);
+    return name===q||name.includes(q)||q.includes(name)||keys.some(k=>k===q||k.includes(q)||q.includes(k));
+  });
+  if(!a){
+    toast('Webapp belum dikenali. Tambahkan nama dan URL-nya di bagian Ruang Kerja Webapp.');
+    return true;
+  }
+  const w=window.open(a.url,'_blank');
+  if(w){try{w.opener=null}catch{};localReply(original,'Siap, bro. Gw membuka '+a.name+'.');}
+  else{localReply(original,'Perintah membuka '+a.name+' sudah dikenali, tetapi browser memblokir tab baru. Ketuk tombol ↗ '+a.name+' di daftar webapp atau izinkan pop-up untuk situs BRO AI.');}
+  return true;
+}
+if(m=original.match(/^(?:ingat|catat)\\s*(?:bahwa|:)\\s*(.+)$/i)){settings.notes=(settings.notes||[]).concat(m[1].slice(0,200)).slice(-20);saveSettings();localReply(original,'Oke, dicatat. Total catatan: '+settings.notes.length+'.');return true}
+if(/^(?:lupakan semua|hapus (?:semua )?catatan)/i.test(original)){settings.notes=[];saveSettings();localReply(original,'Semua catatan dihapus.');return true}
+if(/^(?:daftar catatan|apa (?:yang )?(?:lo|kamu) ingat)/i.test(original)){const n=settings.notes||[];localReply(original,n.length?n.map((x,i)=>(i+1)+'. '+x).join('\\n'):'Belum ada catatan.');return true}
 return false}
 $('convoBtn').onclick=()=>{convo=!convo;updConvo();if(convo){toast('Mode percakapan ON: tiap giliran = 1 panggilan API. Tekan ■ untuk berhenti.');startMic(true)}else{if(recognition&&listening)recognition.stop();if('speechSynthesis'in window)speechSynthesis.cancel()}};
 $('exportBtn').onclick=()=>{const d={v:4,history,webapps,notes:settings.notes,workerUrl:settings.workerUrl};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(d)],{type:'application/json'}));a.download='bro-ai-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
