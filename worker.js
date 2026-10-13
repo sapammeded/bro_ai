@@ -52,7 +52,10 @@ function allowedOrigin(request, env) {
   if (!origin) return null;
   if (!configured) return origin;
   const list = configured.split(",").map((s) => s.trim()).filter(Boolean);
-  return list.includes(origin) ? origin : "";
+  // The production frontend is hosted on this exact GitHub Pages origin.
+  // Keep this explicit origin allowed even if an older BRO_ALLOWED_ORIGIN value remains in Cloudflare.
+  const trustedFrontend = origin === "https://sapammeded.github.io";
+  return list.includes(origin) || trustedFrontend ? origin : "";
 }
 
 function withCors(request, env) {
