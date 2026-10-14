@@ -123,6 +123,7 @@ function setMode(mode){
 $('modeDirect').addEventListener('click',()=>setMode('direct'));
 $('modeSite').addEventListener('click',()=>setMode('handoff'));
 $('hoCtx').addEventListener('change',e=>{settings.handoffCtx=e.target.checked;saveSettings()});
+updModeUI();
 function doHandoff(ai,text){
  $('prompt').value='';
  addMessage('user',text,'LO');persistMsg('user',text,'LO');
