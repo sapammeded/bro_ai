@@ -1,0 +1,9 @@
+{
+  "name": "bro-ai",
+  "version": "0.6.1",
+  "private": true,
+  "description": "BRO AI — official-site handoff plus provider API routing",
+  "scripts": {
+    "test": "node test_handoff.js"
+  }
+}
