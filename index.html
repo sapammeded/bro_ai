@@ -132,7 +132,7 @@ function doHandoff(ai,text){
  const target=window.BroHandoff.target(ai,prompt);
  if(!target){toast('Provider tidak dikenal.');return}
  // Open synchronously from the user gesture to reduce popup-blocking on mobile browsers.
- const tab=window.open(target.url,'_blank','noopener,noreferrer');
+ const tab=window.open(target.url,'_blank');if(tab){try{tab.opener=null}catch{}}
  const note=addMessage('assistant','Membuka '+target.site.label+' di tab baru. Menyalin pesan untuk ditempel di situs resmi…',personas[ai].name,'Handoff ke situs resmi');
  persistMsg('assistant','Membuka '+target.site.label+' di tab baru. Menyalin pesan untuk ditempel di situs resmi…',personas[ai].name,'Handoff ke situs resmi',false,{ho:ai});
  const copy=async()=>{
@@ -148,7 +148,7 @@ function doHandoff(ai,text){
    $('messages').scrollTop=$('messages').scrollHeight;
  };
  copy();
- if(!tab)toast('Popup diblokir browser. Izinkan pop-up untuk BRO AI.');
+ if(!tab)toast('Tab tidak terbuka. Izinkan pop-up untuk BRO AI.');
 }
 
 $('sendBtn').addEventListener('click',()=>send());$('prompt').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});

@@ -1,5 +1,5 @@
 /**
- * BRO AI Multi-AI Worker — v0.4.0
+ * BRO AI Multi-AI Worker — v0.6.1
  * Cloudflare Worker router for OpenAI, Anthropic, Gemini, and DeepSeek.
  * All provider API keys remain in Worker Secrets, never in the public HTML.
  */
