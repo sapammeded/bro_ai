@@ -1,24 +1,22 @@
-# BRO AI Multi-AI v0.4.0 — paket implementasi
+# BRO AI Multi-AI v0.6.1 — Unified Free Chat Handoff
 
-Paket ini mempertahankan `index.html` hasil upgrade Claude dan melengkapinya dengan Cloudflare Worker router.
+BRO AI is a single interface with two clearly separated modes:
 
-## Isi paket
-- `index.html` — frontend BRO AI v0.4.0 (dari file yang diberikan).
-- `worker.js` — backend untuk OpenAI, Claude, Gemini, DeepSeek.
-- `wrangler.toml` — konfigurasi dasar Cloudflare Worker.
-- `manifest.webmanifest`, `sw.js` — PWA dan cache statis.
-- `SETUP_ID.md` — langkah instalasi Bahasa Indonesia.
+- **Official-site handoff (default for ChatGPT, Claude, DeepSeek):** opens the provider's official website and attempts to copy the prompt. The provider's reply stays on that official site; it does not magically return to BRO AI.
+- **Direct API (default for Gemini):** sends messages through the Cloudflare Worker. Provider free-tier availability and limits depend on the provider/account.
+- API calls for OpenAI, Anthropic, and DeepSeek are blocked by default in the Worker. Set Worker variable `BRO_ALLOW_PAID=1` only if you intentionally accept possible API charges.
 
-## Gambaran arsitektur
-Browser/GitHub Pages → Cloudflare Worker → API provider yang dipilih.
+## Deploy
+1. Upload the repository files to GitHub Pages.
+2. Deploy `worker.js` with `wrangler.toml` to Cloudflare Workers.
+3. Set Worker secrets `BRO_ACCESS_TOKEN` and, if using Gemini direct, `GEMINI_API_KEY`.
+4. Set `BRO_ALLOWED_ORIGIN` to your GitHub Pages origin.
+5. In BRO AI, enter the Worker URL and the access token.
+6. Choose **Situs resmi** for free web-account usage where available, or **Langsung (API)** for a configured API.
 
-Kunci API provider hanya disimpan di Cloudflare Worker Secrets. Token akses frontend harus sama dengan `BRO_ACCESS_TOKEN`, dan Worker memvalidasinya pada `/health` serta `/chat`.
-
-## Penting
-- Paket ini belum dideploy ke akun Cloudflare/GitHub milik pengguna.
-- Pemeriksaan lokal/sintaks tidak membuktikan API provider hidup. Setelah deployment, gunakan tombol **Tes**, lalu kirim satu pesan uji.
-- API key/usage provider bisa berbayar. Langganan ChatGPT/Claude/Gemini di aplikasi konsumen tidak otomatis mencakup API.
-- `SpeechRecognition` dan suara TTS tergantung dukungan Chrome/Android serta bahasa/voice yang terpasang.
-- Catatan, riwayat, URL Worker, dan token di frontend disimpan di localStorage perangkat/browser. Jangan gunakan token ini sebagai satu-satunya pengamanan untuk data yang sangat sensitif.
-- CORS bukan pengganti autentikasi. Gunakan `BRO_ALLOWED_ORIGIN` untuk membatasi origin frontend.
-- Worker tidak memberikan rate-limit global persisten. Untuk produksi publik, aktifkan rate limiting/WAF di Cloudflare dan rotasi token bila bocor.
+## Honest limitations
+- Opening an official site is a handoff, not an embedded provider chat. BRO AI cannot read that site's answer back automatically.
+- ChatGPT's `?q=` prefill is best-effort and not an official API contract; clipboard paste is the fallback.
+- A provider's consumer-app free quota is not the same as its API quota.
+- Automated tests and a successful Worker health check do not prove a live provider request succeeds.
+- Never place provider API keys in public HTML.

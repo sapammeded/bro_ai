@@ -1,5 +1,5 @@
-const CACHE_NAME = "bro-ai-v040-static";
-const ASSETS = ["./", "./index.html", "./manifest.webmanifest"];
+const CACHE_NAME = "bro-ai-v061-static";
+const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./handoff.js"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
 });

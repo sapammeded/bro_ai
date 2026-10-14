@@ -19,13 +19,13 @@ const PROVIDERS = {
   gemini: {
     secret: "GEMINI_API_KEY",
     model: "GEMINI_MODEL",
-    defaultModel: "gemini-3.6-flash",
+    defaultModel: "gemini-3.8-flash",
     endpoint: null,
   },
   deepseek: {
     secret: "DEEPSEEK_API_KEY",
     model: "DEEPSEEK_MODEL",
-    defaultModel: "deepseek-chat",
+    defaultModel: "deepseek-flash",
     endpoint: "https://api.deepseek.com/chat/completions",
   },
 };
@@ -86,8 +86,10 @@ function authorized(request, env) {
   return Boolean(expected && supplied && safeEqual(supplied, expected));
 }
 
+function paidEnabled(env) { return String(env.BRO_ALLOW_PAID || "").trim() === "1"; }
+function providerAllowed(key, env) { return key === "gemini" || paidEnabled(env); }
 function configured(env) {
-  return Object.fromEntries(Object.entries(PROVIDERS).map(([key, p]) => [key, Boolean(env[p.secret])]));
+  return Object.fromEntries(Object.entries(PROVIDERS).map(([key, p]) => [key, Boolean(env[p.secret]) && providerAllowed(key, env)]));
 }
 
 function trimText(value, max = 12000) {
@@ -139,8 +141,8 @@ async function providerCall(provider, body, env) {
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
     };
   } else if (provider === "gemini") {
-    url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
-    headers = { "content-type": "application/json" };
+    url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+    headers = { "content-type": "application/json", "x-goog-api-key": key };
     const contents = messages.map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
@@ -227,7 +229,7 @@ export default {
 
     if (url.pathname.endsWith("/health") || url.pathname === "/health") {
       if (!authorized(request, env)) return json({ ok: false, error: "Token akses tidak valid." }, 401, headers);
-      return json({ ok: true, service: "BRO AI Multi-AI Worker", version: "0.4.0", configured: configured(env) }, 200, headers);
+      return json({ ok: true, service: "BRO AI Multi-AI Worker", version: "0.6.1", configured: configured(env), paidEnabled: paidEnabled(env) }, 200, headers);
     }
 
     if (url.pathname.endsWith("/chat") || url.pathname === "/chat") {
@@ -240,6 +242,7 @@ export default {
       const provider = trimText(body.provider, 30).toLowerCase();
       const message = trimText(body.message, 12000);
       if (!PROVIDERS[provider]) return json({ ok: false, error: "Provider tidak dikenal." }, 400, headers);
+      if (!providerAllowed(provider, env)) return json({ ok: false, error: `Provider ${provider} memakai API berbayar dan dinonaktifkan demi kebijakan biaya Rp0. Gunakan mode Situs resmi, atau set BRO_ALLOW_PAID=1 jika sengaja ingin memakai API berbayar.` }, 403, headers);
       if (!message) return json({ ok: false, error: "Pesan tidak boleh kosong." }, 400, headers);
       if (message.length > 12000) return json({ ok: false, error: "Pesan terlalu panjang." }, 413, headers);
 
