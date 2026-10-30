@@ -16,7 +16,7 @@ The frontend currently includes four personas, direct API / official-site handof
 - Provider fallback now covers network errors, HTTP 401, 403, 404, 408, 429, and upstream 5xx responses.
 - Each upstream provider request has a 25-second timeout.
 - The Worker rejects request bodies larger than 64 KB.
-- Chat messages are limited to 12,000 characters; system instructions to 7,000 characters; history to 16 messages with a 6,000-character cap per message.
+- Chat messages are limited to 12,000 characters; system instructions to 7,000 characters; history to 16 messages with a 3,000-character cap per history message.
 - A required Cloudflare Rate Limiting binding limits each access token to 20 chat requests per 60 seconds (approximate per Cloudflare location).
 - Rate-limit checks use a SHA-256 digest of the Bearer token as the binding key; the raw token is not used as the key.
 - The Worker fails closed with HTTP 503 if the rate-limiter binding is absent or unavailable.
