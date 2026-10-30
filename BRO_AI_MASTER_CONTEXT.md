@@ -81,6 +81,7 @@ Read `BRO_AI_V1_IMPLEMENTATION.md` for the detailed architecture, setup, securit
 | `.github/workflows/test.yml` | CI test and Wrangler dry-run |
 | `README.md` | Setup and high-level project summary |
 | `BRO_AI_V1_IMPLEMENTATION.md` | Technical architecture and deployment guide |
+| `AI_START_HERE.md` | One-step entrypoint for any new AI account |
 | `BRO_AI_MASTER_CONTEXT.md` | This handover document |
 | `PROJECT_STATUS.md` | Verified current status |
 | `TASK_NEXT.md` | Next task and acceptance criteria |
