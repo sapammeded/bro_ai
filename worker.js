@@ -317,7 +317,11 @@ async function chat(body, env) {
       return { ok: true, persona, provider: result.provider, model: result.model, reply: result.reply, fallbackUsed: i > 0 };
     } catch (error) {
       failures.push({ provider, status: Number(error && error.status || 0) });
-      if (!shouldFallback(error) || Date.now() >= deadline) break;
+      if (Date.now() >= deadline) {
+        failures.push({ provider: "deadline", status: 504 });
+        break;
+      }
+      if (!shouldFallback(error)) break;
     }
   }
   const last = failures[failures.length - 1];
