@@ -2,9 +2,7 @@ name: BRO AI checks
 
 on:
   push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+    branches: ["main", "bro-ai-v1.0-foundation"]
 
 permissions:
   contents: read
