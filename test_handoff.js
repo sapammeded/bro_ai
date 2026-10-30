@@ -25,7 +25,7 @@ assert.match(frontend, /sessionStorage\\.setItem\\('bro_ai_access_token_v1'/);
 assert.match(frontend, /sessionStorage\\.removeItem\\('bro_ai_access_token_v1'/);
 assert.match(frontend, /const t=tok===undefined\\?currentToken\\(\\):tok/);
 assert.doesNotMatch(frontend, /settings\\.token\\s*=/);
-assert.match(frontend, /function esc\\(s\\)\\{return String\\(s\\)\\.replace\\(\\/\\[&<>/);
+assert.ok(frontend.includes("function esc(s){return String(s).replace(/[&<>"));
 assert.match(frontend, /body\\.innerHTML=role==='user'\\?esc\\(content\\):md\\(content\\)/);
 assert.match(frontend, /function md\\(s\\)\\{let t=esc\\(s\\)/);
 console.log('12 handoff tests + 7 frontend security checks passed');
