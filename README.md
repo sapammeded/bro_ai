@@ -1,22 +1,20 @@
-# BRO AI Multi-AI v0.6.1 — Unified Free Chat Handoff
+# BRO AI Multi-AI
 
-BRO AI is a single interface with two clearly separated modes:
+BRO AI is an Android-friendly personal AI assistant interface with a Cloudflare Worker backend.
 
-- **Official-site handoff (default for ChatGPT, Claude, DeepSeek):** opens the provider's official website and attempts to copy the prompt. The provider's reply stays on that official site; it does not magically return to BRO AI.
-- **Direct API (default for Gemini):** sends messages through the Cloudflare Worker. Provider free-tier availability and limits depend on the provider/account.
-- API calls for OpenAI, Anthropic, and DeepSeek are blocked by default in the Worker. Set Worker variable `BRO_ALLOW_PAID=1` only if you intentionally accept possible API charges.
+## Versions
 
-## Deploy
-1. Upload the repository files to GitHub Pages.
-2. Deploy `worker.js` with `wrangler.toml` to Cloudflare Workers.
-3. Set Worker secrets `BRO_ACCESS_TOKEN` and, if using Gemini direct, `GEMINI_API_KEY`.
-4. Set `BRO_ALLOWED_ORIGIN` to your GitHub Pages origin.
-5. In BRO AI, enter the Worker URL and the access token.
-6. Choose **Situs resmi** for free web-account usage where available, or **Langsung (API)** for a configured API.
+- `main`: existing v0.6.1 implementation.
+- `bro-ai-v1.0-foundation`: free-first multi-provider Worker foundation. Not yet deployed.
 
-## Honest limitations
-- Opening an official site is a handoff, not an embedded provider chat. BRO AI cannot read that site's answer back automatically.
-- ChatGPT's `?q=` prefill is best-effort and not an official API contract; clipboard paste is the fallback.
-- A provider's consumer-app free quota is not the same as its API quota.
-- Automated tests and a successful Worker health check do not prove a live provider request succeeds.
-- Never place provider API keys in public HTML.
+## v1.0 foundation
+
+The Worker supports Gemini free-tier routing and OpenRouter's free model router, with optional Groq and paid providers. Paid OpenAI, Anthropic, and DeepSeek routes are disabled unless `BRO_ALLOW_PAID=1`. Provider API keys stay in Cloudflare Worker Secrets.
+
+See [BRO_AI_V1_IMPLEMENTATION.md](./BRO_AI_V1_IMPLEMENTATION.md) for architecture, configuration, limitations, and the deployment checklist.
+
+## Important
+
+The current frontend voice feature uses browser speech recognition and speech synthesis. It is turn-based voice interaction, not full-duplex realtime audio. Current chat history and notes are device-local. The action engine, durable cloud memory, and research integrations remain planned phases; this release must not be described as already able to execute arbitrary tasks.
+
+Do not commit API keys or access tokens to this repository.
