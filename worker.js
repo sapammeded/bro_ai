@@ -24,6 +24,8 @@ const MAX_SYSTEM_CHARS = 7000;
 const MAX_HISTORY_ITEMS = 16;
 const MAX_HISTORY_ITEM_CHARS = 3000;
 const PROVIDER_TIMEOUT_MS = 25000;
+const MAX_CHAT_DURATION_MS = 55000;
+const MAX_PROVIDER_RESPONSE_BYTES = 1024 * 1024;
 
 function json(data, status, headers) {
   return new Response(JSON.stringify(data), { status: status || 200, headers: Object.assign({}, JSON_HEADERS, headers || {}) });
@@ -109,9 +111,9 @@ function modelFor(provider, env) {
   return clean(env[key], 160) || DEFAULTS[key] || "";
 }
 
-async function fetchAndParse(url, init, provider, model) {
+async function fetchAndParse(url, init, provider, model, timeoutMs) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), Math.max(1, timeoutMs || PROVIDER_TIMEOUT_MS));
   try {
     const response = await fetch(url, Object.assign({}, init, { signal: controller.signal }));
     // Keep the timeout active while reading/parsing the response body too.
@@ -125,7 +127,7 @@ function messagesFor(body) {
   return body.history.concat([{ role: "user", content: body.message }]);
 }
 
-async function callGemini(body, env) {
+async function callGemini(body, env, timeoutMs) {
   const model = modelFor("gemini", env);
   const url = "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent";
   const contents = messagesFor(body).map((m) => ({
@@ -140,10 +142,10 @@ async function callGemini(body, env) {
       contents,
       generationConfig: { maxOutputTokens: 3000, temperature: 0.65 },
     }),
-  }, "gemini", model);
+  }, "gemini", model, timeoutMs);
 }
 
-async function callOpenAICompatible(provider, body, env) {
+async function callOpenAICompatible(provider, body, env, timeoutMs) {
   const cfg = {
     openrouter: {
       key: env.OPENROUTER_API_KEY,
@@ -165,20 +167,47 @@ async function callOpenAICompatible(provider, body, env) {
       max_tokens: 3000,
       temperature: 0.65,
     }),
-  }, provider, cfg.model);
+  }, provider, cfg.model, timeoutMs);
 }
 
-async function callAnthropic(body, env) {
+async function callAnthropic(body, env, timeoutMs) {
   const model = modelFor("anthropic", env);
   return fetchAndParse("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({ model, max_tokens: 3000, system: body.system, messages: messagesFor(body) }),
-  }, "anthropic", model);
+  }, "anthropic", model, timeoutMs);
+}
+
+async function readResponseTextLimited(response, maxBytes) {
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const part = await reader.read();
+      if (part.done) break;
+      total += part.value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel();
+        const error = new Error("Provider response exceeded the configured size limit.");
+        error.status = 502;
+        throw error;
+      }
+      chunks.push(part.value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return new TextDecoder().decode(bytes);
 }
 
 async function parseProvider(response, provider, model) {
-  const raw = await response.text();
+  const raw = await readResponseTextLimited(response, MAX_PROVIDER_RESPONSE_BYTES);
   let data = {};
   try { data = JSON.parse(raw); } catch (_) {}
   if (!response.ok) {
@@ -204,10 +233,10 @@ async function parseProvider(response, provider, model) {
   return { reply: reply.trim().slice(0, 40000), provider, model: data.model || model };
 }
 
-async function runProvider(provider, body, env) {
-  if (provider === "gemini") return callGemini(body, env);
-  if (provider === "anthropic") return callAnthropic(body, env);
-  return callOpenAICompatible(provider, body, env);
+async function runProvider(provider, body, env, timeoutMs) {
+  if (provider === "gemini") return callGemini(body, env, timeoutMs);
+  if (provider === "anthropic") return callAnthropic(body, env, timeoutMs);
+  return callOpenAICompatible(provider, body, env, timeoutMs);
 }
 
 function shouldFallback(error) {
@@ -275,20 +304,26 @@ async function chat(body, env) {
     return { error: "Belum ada provider AI yang siap. Isi GEMINI_API_KEY atau OPENROUTER_API_KEY di Worker Secrets. Provider berbayar memerlukan BRO_ALLOW_PAID=1.", status: 503 };
   }
   const failures = [];
+  const deadline = Date.now() + MAX_CHAT_DURATION_MS;
   for (let i = 0; i < chain.length; i++) {
     const provider = chain[i];
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      failures.push({ provider, status: 504 });
+      break;
+    }
     try {
-      const result = await runProvider(provider, normalized, env);
+      const result = await runProvider(provider, normalized, env, Math.min(PROVIDER_TIMEOUT_MS, remainingMs));
       return { ok: true, persona, provider: result.provider, model: result.model, reply: result.reply, fallbackUsed: i > 0 };
     } catch (error) {
       failures.push({ provider, status: Number(error && error.status || 0) });
-      if (!shouldFallback(error)) break;
+      if (!shouldFallback(error) || Date.now() >= deadline) break;
     }
   }
   const last = failures[failures.length - 1];
   return {
     error: "Semua provider yang tersedia gagal. Periksa konfigurasi provider atau coba lagi nanti.",
-    status: last && last.status >= 400 && last.status < 500 ? last.status : 502,
+    status: last && (last.status === 504 || (last.status >= 400 && last.status < 500)) ? last.status : 502,
     failures,
   };
 }
@@ -320,6 +355,8 @@ export default {
         maxRequestBytes: MAX_BODY_BYTES,
         maxHistoryMessages: MAX_HISTORY_ITEMS,
         providerTimeoutMs: PROVIDER_TIMEOUT_MS,
+        maxChatDurationMs: MAX_CHAT_DURATION_MS,
+        maxProviderResponseBytes: MAX_PROVIDER_RESPONSE_BYTES,
         voice: "Browser Web Speech API (client-side)",
         memory: "Local device until optional D1 integration is configured",
         actions: "Approval-gated client tools; no unrestricted server execution",
