@@ -1,5 +1,11 @@
 # BRO AI — CHANGELOG
 
+## 2026-10-30 — Align CI Wrangler with Cloudflare Builds
+- CI previously used Wrangler 4.36.0; its dry-run passed but warned that the `previews` field was unexpected.
+- Updated CI to Wrangler 4.156.0, matching the version reported in Cloudflare Builds, so Preview config validation is meaningful.
+- New workflow run is pending; no merge or production deployment performed.
+
+
 ## 2026-10-30 — Backend response and timeout hardening
 - Added streamed upstream response reading with a 1 MiB maximum before JSON parsing.
 - Added a 55-second total chat deadline across provider fallback attempts; individual provider attempts remain capped at 25 seconds.
