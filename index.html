@@ -40,7 +40,7 @@ button,input,textarea,select{font:inherit}button{cursor:pointer;color:var(--text
     <div class="section-title">Pengaturan koneksi</div>
     <div class="field"><label for="workerUrl">URL backend aman (Cloudflare Worker)</label><input id="workerUrl" type="url" placeholder="https://bro-ai-api.nama-akun.workers.dev"></div>
     <div class="field"><label for="accessToken">Token akses (sama dengan BRO_ACCESS_TOKEN di Worker)</label><input id="accessToken" type="password" autocomplete="off" placeholder="token rahasia lo"></div><div class="row"><button class="primary grow" id="saveUrl">Simpan koneksi</button><button id="testConnection">Tes</button></div>
-    <p class="small">Kunci API disimpan sebagai Secret di backend, bukan di halaman ini. Tanpa backend, aplikasi tetap bisa membuka webapp dan mencoba input suara, tetapi chat AI langsung belum aktif.</p>
+    <p class="small">Kunci API disimpan sebagai Secret di backend. Token akses browser disimpan sementara di sesi tab (bukan localStorage) dan tetap dapat dibaca JavaScript yang berjalan pada origin ini. Tanpa backend, aplikasi tetap bisa membuka webapp dan mencoba input suara, tetapi chat AI langsung belum aktif.</p>
     <div class="divider"></div>
     <div class="section-title">Ruang kerja webapp</div>
     <div class="field"><label for="appName">Nama webapp</label><input id="appName" placeholder="Contoh: Vehicle Lifebook"></div>
@@ -80,6 +80,12 @@ let history = safeRead('bro_ai_history_v03', []);
 let webapps = safeRead('bro_ai_webapps_v03', []);
 let settings = Object.assign({workerUrl:'',voiceName:'',rate:1,autoSpeak:true,token:'',notes:[],handoffCtx:true,modes:{chatgpt:'direct',claude:'direct',gemini:'direct',deepseek:'direct'}},safeRead('bro_ai_settings_v03',{}));
 settings.modes=Object.assign({chatgpt:'direct',claude:'direct',gemini:'direct',deepseek:'direct'},settings.modes||{});
+const legacyToken=settings.token||'';
+try{if(!sessionStorage.getItem('bro_ai_access_token_v1')&&legacyToken)sessionStorage.setItem('bro_ai_access_token_v1',legacyToken)}catch{}
+delete settings.token;
+save('bro_ai_settings_v03',settings);
+function currentToken(){try{return sessionStorage.getItem('bro_ai_access_token_v1')||''}catch{return ''}}
+function storeToken(value){try{if(value)sessionStorage.setItem('bro_ai_access_token_v1',value);else sessionStorage.removeItem('bro_ai_access_token_v1')}catch{toast('Penyimpanan sesi tidak tersedia di browser ini.')}}
 if(!settings.routerV1){settings.modes={chatgpt:'direct',claude:'direct',gemini:'direct',deepseek:'direct'};settings.routerV1=true;save('bro_ai_settings_v03',settings);}
 function safeRead(k,f){try{const x=JSON.parse(localStorage.getItem(k));return x==null?f:x}catch{return f}}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
@@ -154,8 +160,8 @@ function doHandoff(ai,text){
 
 $('sendBtn').addEventListener('click',()=>send());$('prompt').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
 document.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{$('prompt').value=b.dataset.prompt;$('prompt').focus()}));
-$('saveUrl').addEventListener('click',()=>{const u=$('workerUrl').value.trim();if(u&&!/^https:\/\/[a-z0-9.-]+(?::\d+)?(?:\/.*)?$/i.test(u)){toast('Gunakan URL HTTPS yang valid.');return}settings.workerUrl=u;settings.token=$('accessToken').value.trim();save('bro_ai_settings_v03',settings);toast('URL backend disimpan di perangkat ini.');setStatus(u?'Backend belum dites':'Belum terhubung')});
-$('workerUrl').value=settings.workerUrl||'';$('accessToken').value=settings.token||'';
+$('saveUrl').addEventListener('click',()=>{const u=$('workerUrl').value.trim();if(u&&!/^https:\/\/[a-z0-9.-]+(?::\d+)?(?:\/.*)?$/i.test(u)){toast('Gunakan URL HTTPS yang valid.');return}settings.workerUrl=u;storeToken($('accessToken').value.trim());save('bro_ai_settings_v03',settings);toast('URL backend disimpan di perangkat ini.');setStatus(u?'Backend belum dites':'Belum terhubung')});
+$('workerUrl').value=settings.workerUrl||'';$('accessToken').value=currentToken();
 $('testConnection').addEventListener('click',async()=>{const u=$('workerUrl').value.trim().replace(/\/+$/,'');if(!u){toast('Isi URL backend terlebih dahulu.');return}try{setStatus('Menguji backend…');const r=await fetch(u+'/health',{headers:authH($('accessToken').value.trim())});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'Health check gagal');setStatus('Backend siap',true);const ready=d.providers||{};const names=Object.keys(ready).filter(k=>ready[k]);toast('Backend aktif. Provider siap: '+(names.join(', ')||'belum ada secret')+(d.rateLimitConfigured?' · Rate limit aktif':' · Rate limit belum dikonfigurasi'));}catch(e){setStatus('Tes koneksi gagal');toast('Gagal: '+e.message)}});
 function renderApps(){const el=$('webapps');el.innerHTML='';if(!webapps.length){const p=document.createElement('p');p.className='small';p.textContent='Belum ada webapp. Tambahkan URL favorit lo.';el.appendChild(p);return}webapps.forEach((a,i)=>{const row=document.createElement('div');row.className='webapp';const open=document.createElement('button');open.textContent='↗ '+a.name;open.title=a.url;open.addEventListener('click',()=>window.open(a.url,'_blank','noopener,noreferrer'));const del=document.createElement('button');del.textContent='×';del.title='Hapus';del.addEventListener('click',()=>{webapps.splice(i,1);save('bro_ai_webapps_v03',webapps);renderApps()});row.append(open,del);el.appendChild(row)})}
 $('addWebapp').addEventListener('click',()=>{const name=$('appName').value.trim(),url=$('appUrl').value.trim();if(!name||!url){toast('Isi nama dan URL webapp.');return}try{const parsed=new URL(url);if(!['https:','http:'].includes(parsed.protocol))throw 0;webapps.push({name,url:parsed.href});save('bro_ai_webapps_v03',webapps);renderApps();$('appName').value='';$('appUrl').value='';toast('Webapp ditambahkan.')}catch{toast('URL tidak valid. Gunakan alamat http/https.')}});
@@ -170,7 +176,7 @@ function openModal(html){$('modal').innerHTML=html;$('modalBack').classList.remo
 $('modalBack').addEventListener('click',e=>{if(e.target===$('modalBack'))closeModal()});
 $('compareBtn').addEventListener('click',()=>{const q=$('prompt').value.trim();if(!q){toast('Tulis pertanyaan terlebih dahulu, lalu tekan Bandingkan.');return}const choices=['chatgpt','claude','gemini','deepseek'];$('prompt').value='';toast('Mode bandingkan berjalan berurutan; ini dapat memakai hingga empat panggilan API.');(async()=>{for(const ai of choices){await send(q,ai)}})();});
 function md(s){let t=esc(s);t=t.replace(/```[a-z]*\n?([\s\S]*?)```/gi,(m,c)=>'<pre><code>'+c.replace(/\n$/,'')+'</code></pre>');t=t.replace(/`([^`\n]+)`/g,'<code>$1</code>');return t.replace(/\*\*([^*\n]+)\*\*/g,'<b>$1</b>')}
-function authH(tok){const t=tok===undefined?settings.token:tok;const h={'Content-Type':'application/json'};if(t)h.Authorization='Bearer '+t;return h}
+function authH(tok){const t=tok===undefined?currentToken():tok;const h={'Content-Type':'application/json'};if(t)h.Authorization='Bearer '+t;return h}
 function sysFor(ai){const n=(settings.notes||[]).slice(-20);return personas[ai].system+(n.length?'\n\nCATATAN PRIBADI PENGGUNA (pakai bila relevan, jangan diulang tanpa diminta):\n- '+n.join('\n- '):'')}
 function updConvo(){const b=$('convoBtn');b.textContent=convo?'🗣 Percakapan ON':'🗣 Percakapan';b.classList.toggle('primary',convo)}
 function startMic(force){if(listening||busy||(!force&&window.speechSynthesis&&speechSynthesis.speaking))return;recognition=initRecognition();if(recognition){try{recognition.start()}catch(e){toast('Mikrofon belum siap. Coba lagi.')}}}
