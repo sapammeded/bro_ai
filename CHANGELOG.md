@@ -2,6 +2,13 @@
 
 This log records meaningful project and handover changes. Source commits remain the authoritative code history.
 
+## 2026-10-30 — Cloudflare Preview configuration fix
+- Diagnosed the failed Cloudflare Preview build from the supplied log: `npx wrangler preview` exited because `wrangler.toml` lacked a `[previews]` block.
+- Added Preview-specific vars and a separate `BRO_CHAT_LIMITER` Preview binding with namespace ID `2026103002`; production vars and production limiter namespace were left unchanged.
+- Fix commit: `7b2da16917558354f89a8128e29d950e98d1cfcf`.
+- Cloudflare Preview rebuild and GitHub Actions for this commit are pending verification.
+- No merge to `main` and no production deployment performed.
+
 ## 2026-10-30 — AI collaboration handover system
 - Added `BRO_AI_MASTER_CONTEXT.md` as the shared project context for ChatGPT, Claude, and future collaborators.
 - Added `PROJECT_STATUS.md` to separate verified facts from unknown/unverified checks.
@@ -12,14 +19,12 @@ This log records meaningful project and handover changes. Source commits remain 
 - Initial handover commit (master context): `2a9c0d5c5176ad25b42ed255b13a45ca3744102a`.
 - Handover files were committed sequentially on `bro-ai-v1.0-foundation`; see Git history for the complete sequence.
 
-
 ## 2026-10-30 — Verified handover status refresh
 - Recorded foundation branch head `681e25bd00d2037f8410080caa3df56c87d99aa8` and PR #1 state (open, draft, not merged).
 - Recorded that the latest commit has no verified GitHub Actions test result; CodeRabbit check was skipped, not passed.
 - Recorded Cloudflare preview signals for earlier commits without treating them as proof for the latest head.
 - Status update commit: `18d544e414a1f84ff9b5591b0c1a2e79d044b60c`.
 - No merge or production deployment performed.
-
 
 ## 2026-10-30 — One-step AI entrypoint
 - Added `AI_START_HERE.md` so a new Claude account or other AI collaborator has one short starting instruction and a defined first task.
