@@ -4,6 +4,7 @@
 
 ## Latest verified state
 - Work branch: `bro-ai-v1.0-foundation`.
+- Latest frontend security commits: `124c653c9d2277b3ad1db2504e2d2e2d4aade586`, `90115d0c62396f4e30bf8a698c7945b39f7d58d9`, `8733372fcd5502a695b7b26fc9e4e888f8207c45`, `346444f8294e8ff2397a033b179458e4c5d28a15`.
 - Latest backend hardening commits: `1eb610a9332d16b5250a3060c4c738cdb206f092`, `7da5db5361cd9fe0ba0a9a250e0a6e2e9f24be6d`, `01cd26a1f440920492c177d23729ff167dc7889d`.
 - CI run #41 (`41039185403`) completed successfully: all 20 tests passed and dry-run completed, but Wrangler 4.36.0 emitted `Unexpected fields found in top-level field: "previews"`. CI has now been pinned to Wrangler 4.156.0 to match Cloudflare Builds; the new run is pending.
 - PR #1: OPEN, DRAFT, not merged; targets `main`.
@@ -37,9 +38,9 @@
 | Check | State | Evidence / next action |
 |---|---|---|
 | Cloudflare Preview before fix | FAIL | Build log: missing `previews` block on commit `715539f` |
-| Cloudflare Preview after fix | NOT CHECKED for latest hardening head | Check newest build after current commits |
+| Cloudflare Preview after fix | NOT VERIFIED | Check Cloudflare Builds dashboard for newest Preview build; GitHub dry-run is not equivalent |
 | GitHub Actions for latest hardening head | PASS for code commit `01cd26a`; rerun pending after Wrangler pin | Run #41 (`41039185403`) |
-| Node test suite | PASS for code commit `01cd26a`; rerun pending after Wrangler pin | Confirm CI `npm test` on latest head |
+| Node test suite | PASS 20/20 on commit `01cd26a`; new frontend assertions pending CI | Confirm next `npm test` result |
 | Wrangler dry-run | IN PROGRESS / NOT YET VERIFIED | Confirm CI output on latest head |
 | Production Worker | No deployment performed by this fix | No deployment authorized |
 | PR #1 | OPEN / DRAFT / NOT MERGED | Keep draft until all gates pass |
@@ -52,6 +53,12 @@
 - Added tests for oversized provider responses and total-deadline enforcement.
 - Commits: `1eb610a`, `7da5db5`, `01cd26a`.
 - CI run #41 was still running when this snapshot was written; do not mark tests passed until the run concludes.
+
+## Frontend security audit (2026-10-30)
+- Worker token moved from persistent localStorage to tab-scoped sessionStorage; legacy token is migrated and removed from saved settings at app startup.
+- This reduces persistence on shared devices but does not prevent same-origin JavaScript/XSS from reading the token during an active session.
+- Existing message rendering escapes HTML before limited Markdown formatting; added static regression assertions for token storage and rendering paths. A full browser-based DOM/XSS test is still outstanding.
+- Cloudflare Preview cannot be independently inspected from the available GitHub integration; the latest confirmed CI dry-run is not a substitute.
 
 ## Known engineering caveats
 1. Cloudflare built-in rate limiting is approximate per location, not a strict global quota.
