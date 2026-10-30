@@ -43,6 +43,8 @@ test("health reports provider readiness and rate limiter", async () => {
   assert.equal(data.paidEnabled, false);
   assert.equal(data.rateLimitConfigured, true);
   assert.equal(data.maxRequestBytes, 65536);
+  assert.equal(data.maxChatDurationMs, 55000);
+  assert.equal(data.maxProviderResponseBytes, 1048576);
 });
 
 test("rejects unapproved browser origin", async () => {
@@ -176,6 +178,47 @@ for (const upstreamStatus of [401, 403, 404, 429]) {
     }
   });
 }
+
+test("rejects provider responses larger than 1 MiB", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response("x".repeat(1024 * 1024 + 1), { status: 200 });
+  try {
+    const env = Object.assign(baseEnv(), { GEMINI_API_KEY: "fake-gemini" });
+    const res = await chatRequest({ provider: "gemini", message: "Halo" }, env);
+    const data = await res.json();
+    assert.equal(res.status, 502);
+    assert.match(data.error, /Semua provider/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("stops provider fallback when the total chat deadline expires", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalNow = Date.now;
+  let now = 1000;
+  let calls = 0;
+  Date.now = () => now;
+  globalThis.fetch = async () => {
+    calls++;
+    now = 57000;
+    return new Response(JSON.stringify({ error: { message: "upstream failure" } }), { status: 401 });
+  };
+  try {
+    const env = Object.assign(baseEnv(), {
+      GEMINI_API_KEY: "fake-gemini",
+      OPENROUTER_API_KEY: "fake-openrouter",
+    });
+    const res = await chatRequest({ provider: "gemini", message: "Halo" }, env);
+    const data = await res.json();
+    assert.equal(res.status, 504);
+    assert.equal(calls, 1);
+    assert.equal(data.failures.at(-1).status, 504);
+  } finally {
+    globalThis.fetch = originalFetch;
+    Date.now = originalNow;
+  }
+});
 
 test("does not expose upstream provider error text to the client", async () => {
   const originalFetch = globalThis.fetch;
