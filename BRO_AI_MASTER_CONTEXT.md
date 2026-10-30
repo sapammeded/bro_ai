@@ -34,7 +34,7 @@ Do not claim work, tests, review, deployment, or merge succeeded unless tool out
 - Four personas: ChatGPT/Chantika, Claude/Clara, Gemini/Gendis, DeepSeek/Denada.
 - Direct API mode and official-site handoff mode.
 - Browser Web Speech API recognition and speech synthesis (turn-based).
-- Local chat history, notes, settings, Worker URL, and access token in browser localStorage.
+- Local chat history, notes, settings, and Worker URL in localStorage; Worker access token is stored in tab-scoped sessionStorage.
 - Webapp shortcuts and JSON import/export.
 - UI displays the actual provider/model returned by the Worker.
 
@@ -61,7 +61,7 @@ The foundation branch contains the v1.0.1 security/reliability work:
 - 20 requests per 60 seconds per token (approximate, per Cloudflare location).
 - SHA-256 digest of the token used as rate-limit key.
 - 64 KB request-body cap; bounded message, system prompt, and history sizes.
-- 25-second upstream timeout covering fetch and response parsing.
+- 25-second per-provider timeout, 55-second total chat deadline, and 1 MiB streamed upstream response cap.
 - Provider fallback for network errors and selected HTTP failures (401/403/404/408/429/5xx).
 - Sanitized upstream error details returned to browser.
 - Health endpoint reports configured providers and rate-limit readiness.
