@@ -1,5 +1,15 @@
 # BRO AI — CHANGELOG
 
+## 2026-10-30 — Backend response and timeout hardening
+- Added streamed upstream response reading with a 1 MiB maximum before JSON parsing.
+- Added a 55-second total chat deadline across provider fallback attempts; individual provider attempts remain capped at 25 seconds.
+- Health endpoint now reports both limits.
+- Added regression tests for oversized upstream responses and deadline expiry.
+- Commits: `1eb610a`, `7da5db5`, `01cd26a`.
+- GitHub Actions run #41 was in progress at the time of this update; test success is not yet claimed.
+- No merge to `main` and no production deployment performed.
+
+
 This log records meaningful project and handover changes. Source commits remain the authoritative code history.
 
 ## 2026-10-30 — Cloudflare Preview configuration fix
