@@ -13,7 +13,8 @@ BRO AI is an Android-friendly personal AI assistant interface with a Cloudflare 
 - Optional Groq routing, disabled by default.
 - Optional paid OpenAI, Anthropic, and DeepSeek routing, disabled unless `BRO_ALLOW_PAID=1`.
 - Provider fallback for network errors, HTTP 401, 403, 404, 408, 429, and upstream 5xx responses.
-- Per-provider request timeout (25 seconds).
+- Per-provider request timeout (25 seconds), plus a 55-second total chat deadline.
+- Upstream provider response cap (1 MiB) enforced while streaming before JSON parsing.
 - Maximum request body of 64 KB, maximum 16 history messages, and bounded message/system lengths.
 - Cloudflare token-scoped rate limiting: 20 chat requests per 60 seconds, approximate per Cloudflare location.
 - Strict browser-origin allowlist and authenticated `/health` and `/chat` endpoints.
