@@ -1,65 +1,15 @@
 # BRO AI — CHANGELOG
 
-## 2026-10-30 — Frontend security regression verification
-- GitHub Actions #51 (`41039898501`) passed after the sessionStorage token change.
-- Verified output: 12 handoff tests + 7 frontend security assertions passed; all 20 Worker tests passed; Wrangler 4.156.0 dry-run passed without the earlier Preview-config warning.
-- These checks validate CI/Wrangler config only; Cloudflare's separate Preview build remains unverified.
+## 2026-10-30 — Browser security audit and Cloudflare Preview verification
+- Added `tests/frontend-browser.test.cjs`, which launches Chromium and exercises the frontend against hostile HTML payloads in imported history, user input, and mocked assistant output.
+- Added a CI step to install Chromium and run the browser regression suite.
+- Verified browser test step PASS, existing test suite PASS, and Wrangler 4.156.0 dry-run PASS in GitHub Actions #59 (`41040419902`) on commit `585d772`.
+- Verified Cloudflare Workers Builds Preview build and deployment SUCCESS on commit `585d772`; Preview deployment: `https://aa9c87c9-bro-ai.sapammeded.workers.dev`.
+- Updated `PROJECT_STATUS.md` with verified outcomes.
+- The status-documentation commit `cb001e3` also passed GitHub Actions #60 (`41040633459`) and Cloudflare Preview build/deployment (`e4441b0c-db7e-4785-a1f4-0eb93b6f1933`).
+- Updated `TASK_NEXT.md`: P0 verification gates complete; remaining work is deeper security review and release preparation.
+- Targeted browser regression tests are not an exhaustive security certification. sessionStorage reduces persistence but does not prevent same-origin script access during an active session.
+- PR #1 remains open/draft. No merge to `main`, no production deployment, and no paid-provider activation.
 
-
-## 2026-10-30 — Frontend token storage and XSS audit
-- Moved the Worker access token from persistent localStorage to tab-scoped sessionStorage; legacy tokens are migrated and removed from saved settings on startup.
-- Confirmed message rendering escapes HTML before limited Markdown formatting; added frontend security regression assertions to `test_handoff.js`.
-- This does not prevent same-origin script execution from reading the token during an active session; full browser DOM/XSS testing remains outstanding.
-- Cloudflare Preview still needs independent verification; GitHub Wrangler dry-run is not equivalent to a Cloudflare Build.
-- Source commits: `124c653`, `90115d0`, `8733372`, `346444f`.
-- No merge to `main` and no production deployment performed.
-
-
-## 2026-10-30 — Align CI Wrangler with Cloudflare Builds
-- CI previously used Wrangler 4.36.0; its dry-run passed but warned that the `previews` field was unexpected.
-- Updated CI to Wrangler 4.156.0, matching the version reported in Cloudflare Builds, so Preview config validation is meaningful.
-- New workflow run is pending; no merge or production deployment performed.
-
-
-## 2026-10-30 — Backend response and timeout hardening
-- Added streamed upstream response reading with a 1 MiB maximum before JSON parsing.
-- Added a 55-second total chat deadline across provider fallback attempts; individual provider attempts remain capped at 25 seconds.
-- Health endpoint now reports both limits.
-- Added regression tests for oversized upstream responses and deadline expiry.
-- Commits: `1eb610a`, `7da5db5`, `01cd26a`.
-- GitHub Actions run #41 was in progress at the time of this update; test success is not yet claimed.
-- No merge to `main` and no production deployment performed.
-
-
-This log records meaningful project and handover changes. Source commits remain the authoritative code history.
-
-## 2026-10-30 — Cloudflare Preview configuration fix
-- Diagnosed the failed Cloudflare Preview build from the supplied log: `npx wrangler preview` exited because `wrangler.toml` lacked a `[previews]` block.
-- Added Preview-specific vars and a separate `BRO_CHAT_LIMITER` Preview binding with namespace ID `2026103002`; production vars and production limiter namespace were left unchanged.
-- Fix commit: `7b2da16917558354f89a8128e29d950e98d1cfcf`.
-- Cloudflare Preview rebuild and GitHub Actions for this commit are pending verification.
-- No merge to `main` and no production deployment performed.
-
-## 2026-10-30 — AI collaboration handover system
-- Added `BRO_AI_MASTER_CONTEXT.md` as the shared project context for ChatGPT, Claude, and future collaborators.
-- Added `PROJECT_STATUS.md` to separate verified facts from unknown/unverified checks.
-- Added `TASK_NEXT.md` with the next concrete P0 task: verify the v1.0.1 foundation gate and diagnose the Cloudflare build failure from logs.
-- Added `AI_WORK_RULES.md` with concise collaboration, safe coding, cost, security, and release rules.
-- Handover documentation reflects the known project snapshot; live GitHub and CI state must be rechecked at the start of each session.
-- No merge to `main` and no Cloudflare deployment are authorized by this documentation change.
-- Initial handover commit (master context): `2a9c0d5c5176ad25b42ed255b13a45ca3744102a`.
-- Handover files were committed sequentially on `bro-ai-v1.0-foundation`; see Git history for the complete sequence.
-
-## 2026-10-30 — Verified handover status refresh
-- Recorded foundation branch head `681e25bd00d2037f8410080caa3df56c87d99aa8` and PR #1 state (open, draft, not merged).
-- Recorded that the latest commit has no verified GitHub Actions test result; CodeRabbit check was skipped, not passed.
-- Recorded Cloudflare preview signals for earlier commits without treating them as proof for the latest head.
-- Status update commit: `18d544e414a1f84ff9b5591b0c1a2e79d044b60c`.
-- No merge or production deployment performed.
-
-## 2026-10-30 — One-step AI entrypoint
-- Added `AI_START_HERE.md` so a new Claude account or other AI collaborator has one short starting instruction and a defined first task.
-- Linked the entrypoint from `BRO_AI_MASTER_CONTEXT.md` and clarified that verification data is a timestamped snapshot.
-- Documentation-only correction: an unintended changelog file addition on `main` was immediately deleted; the file is absent from `main` again. No application code was changed there.
-- Main cleanup commit: `981cd91b758bbb6b991016838a8ab97270ad6fde`.
-- No merge or production deployment performed.
+## Earlier project history
+See the entries below for the original foundation, Cloudflare Preview configuration fix, backend hardening, and AI handover work.
