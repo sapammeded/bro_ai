@@ -1,5 +1,11 @@
 # BRO AI — CHANGELOG
 
+## 2026-10-30 — Frontend security regression verification
+- GitHub Actions #51 (`41039898501`) passed after the sessionStorage token change.
+- Verified output: 12 handoff tests + 7 frontend security assertions passed; all 20 Worker tests passed; Wrangler 4.156.0 dry-run passed without the earlier Preview-config warning.
+- These checks validate CI/Wrangler config only; Cloudflare's separate Preview build remains unverified.
+
+
 ## 2026-10-30 — Frontend token storage and XSS audit
 - Moved the Worker access token from persistent localStorage to tab-scoped sessionStorage; legacy tokens are migrated and removed from saved settings on startup.
 - Confirmed message rendering escapes HTML before limited Markdown formatting; added frontend security regression assertions to `test_handoff.js`.
