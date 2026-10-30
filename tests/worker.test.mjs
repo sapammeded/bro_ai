@@ -280,7 +280,7 @@ test("defaults Gemini to 3.8 Flash with low thinking", async () => {
     const res = await chatRequest({ provider: "gemini", message: "Halo" }, env);
     const data = await res.json();
     assert.equal(res.status, 200);
-    assert.match(capturedUrl, /models\\/gemini-3\\.8-flash:generateContent$/);
+    assert.ok(capturedUrl.endsWith("/models/gemini-3.8-flash:generateContent"));
     assert.equal(capturedBody.generationConfig.thinkingConfig.thinkingLevel, "low");
     assert.equal(data.reply, "Gemini test OK");
   } finally {
