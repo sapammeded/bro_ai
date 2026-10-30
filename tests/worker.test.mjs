@@ -96,7 +96,7 @@ test("rejects request bodies larger than 64 KB", async () => {
   const body = JSON.stringify({ provider: "gemini", message: "x".repeat(66000) });
   const res = await worker.fetch(request("/chat", {
     method: "POST",
-    headers: authHeaders({ "Content-Type": "application/json", "Content-Length": String(new TextEncoder().encode(body).length) }),
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body,
   }), env);
   assert.equal(res.status, 413);
