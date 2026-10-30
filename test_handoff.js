@@ -21,11 +21,11 @@ const long = H.target('chatgpt', 'x'.repeat(3000));
 assert.equal(long.prefilled, false);
 assert.equal(long.url, 'https://chatgpt.com/');
 // Frontend security regression checks: bearer token is session-scoped, not persisted in localStorage.
-assert.match(frontend, /sessionStorage\\.setItem\\('bro_ai_access_token_v1'/);
-assert.match(frontend, /sessionStorage\\.removeItem\\('bro_ai_access_token_v1'/);
-assert.match(frontend, /const t=tok===undefined\\?currentToken\\(\\):tok/);
-assert.doesNotMatch(frontend, /settings\\.token\\s*=/);
+assert.ok(frontend.includes("sessionStorage.setItem('bro_ai_access_token_v1'"));
+assert.ok(frontend.includes("sessionStorage.removeItem('bro_ai_access_token_v1'"));
+assert.ok(frontend.includes('const t=tok===undefined?currentToken():tok'));
+assert.ok(!frontend.includes("settings.token=$('accessToken')"));
 assert.ok(frontend.includes("function esc(s){return String(s).replace(/[&<>"));
-assert.match(frontend, /body\\.innerHTML=role==='user'\\?esc\\(content\\):md\\(content\\)/);
-assert.match(frontend, /function md\\(s\\)\\{let t=esc\\(s\\)/);
+assert.ok(frontend.includes("body.innerHTML=role==='user'?esc(content):md(content)"));
+assert.ok(frontend.includes('function md(s){let t=esc(s)'));
 console.log('12 handoff tests + 7 frontend security checks passed');
