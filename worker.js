@@ -22,7 +22,7 @@ const MAX_BODY_BYTES = 64 * 1024;
 const MAX_MESSAGE_CHARS = 12000;
 const MAX_SYSTEM_CHARS = 7000;
 const MAX_HISTORY_ITEMS = 16;
-const MAX_HISTORY_ITEM_CHARS = 6000;
+const MAX_HISTORY_ITEM_CHARS = 3000;
 const PROVIDER_TIMEOUT_MS = 25000;
 
 function json(data, status, headers) {
