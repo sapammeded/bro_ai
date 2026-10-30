@@ -140,7 +140,7 @@ async function callGemini(body, env, timeoutMs) {
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: body.system }] },
       contents,
-      generationConfig: { maxOutputTokens: 3000, thinkingConfig: { thinkingLevel: "low" } },
+      generationConfig: { maxOutputTokens: 3000 },
     }),
   }, "gemini", model, timeoutMs);
 }
