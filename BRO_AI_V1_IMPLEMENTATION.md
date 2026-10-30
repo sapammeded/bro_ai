@@ -1,6 +1,6 @@
 # BRO AI v1.0.1 — Architecture & Implementation Notes
 
-Status: **security/reliability patch on foundation branch; not yet deployed or merged**.
+Status: **security/reliability patch on foundation branch; not merged. Latest backend hardening is awaiting CI verification.**
 
 ## Current implementation
 
@@ -14,7 +14,8 @@ The frontend currently includes four personas, direct API / official-site handof
 - Optional Groq route remains disabled unless `GROQ_ENABLE=1`.
 - OpenAI, Anthropic, and DeepSeek remain disabled unless `BRO_ALLOW_PAID=1`.
 - Provider fallback now covers network errors, HTTP 401, 403, 404, 408, 429, and upstream 5xx responses.
-- Each upstream provider request has a 25-second timeout.
+- Each upstream provider request has a 25-second timeout, with a 55-second total deadline for one chat request.
+- Upstream provider response bodies are streamed and capped at 1 MiB before JSON parsing.
 - The Worker rejects request bodies larger than 64 KB.
 - Chat messages are limited to 12,000 characters; system instructions to 7,000 characters; history to 16 messages with a 3,000-character cap per history message.
 - A required Cloudflare Rate Limiting binding limits each access token to 20 chat requests per 60 seconds (approximate per Cloudflare location).
@@ -121,4 +122,5 @@ GitHub Actions runs `npm test` for pull requests targeting `main` and pushes to 
 9. Verify paid providers are not called while `BRO_ALLOW_PAID=0`.
 10. Test speech input/output on the actual Android browser.
 11. Verify backup export/import before changing local storage formats.
-12. Do not merge or deploy until Cloudflare build and runtime checks are green.
+12. Verify the 1 MiB upstream response cap and 55-second total chat deadline through CI and runtime tests.
+13. Do not merge or deploy until Cloudflare build and runtime checks are green.
