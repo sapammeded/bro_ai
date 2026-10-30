@@ -107,12 +107,12 @@ The official-site handoff mode remains a manual handoff. It opens the provider's
 
 ## CI and tests
 
-GitHub Actions runs `npm test` for pull requests targeting `main` and pushes to `main`. Workflow permissions are read-only. CI runs the Node test suite and a Wrangler 4.36.0 dry-run bundle/config validation. The test suite covers authentication, origin rejection, CORS preflight, rate-limit enforcement, body size, history validation, paid-provider gating, fallback statuses, sanitized errors, and malformed provider responses.
+GitHub Actions runs `npm test` for pull requests targeting `main` and pushes to `main`. Workflow permissions are read-only. CI runs the Node test suite and a Wrangler 4.156.0 dry-run bundle/config validation. The test suite covers authentication, origin rejection, CORS preflight, rate-limit enforcement, body size, history validation, paid-provider gating, fallback statuses, sanitized errors, and malformed provider responses.
 
 ## Validation checklist before production
 
 1. Inspect and resolve the Cloudflare build failure reported on the earlier commits. The Cloudflare build log was not available during this patch, so its cause is still unknown.
-2. Confirm Cloudflare's build environment uses Wrangler 4.36.0 or later and recognizes the `ratelimits` configuration.
+2. Confirm Cloudflare's build environment uses Wrangler 4.156.0 or later and recognizes the `ratelimits` configuration.
 3. Confirm `BRO_CHAT_LIMITER` is bound in the deployed Worker.
 4. Configure Worker Secrets; never commit or paste secrets into chat.
 5. Confirm `BRO_ALLOWED_ORIGIN` matches the exact frontend origin.
