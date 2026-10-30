@@ -26,8 +26,8 @@
 - No change is merged to `main` and no production Worker is deployed without explicit owner approval.
 
 ## P0 — Verify latest frontend security changes
-- Confirm the new sessionStorage migration and frontend security assertions pass in CI.
-- Run a browser-based XSS/DOM test against user messages, imported history, persona labels, notes, and modal content.
+- Confirmed on GitHub Actions #51: 12 handoff tests + 7 frontend security assertions + 20 Worker tests passed; Wrangler 4.156.0 dry-run passed.
+- Still run a browser-based XSS/DOM test against user messages, imported history, persona labels, notes, and modal content.
 - Verify Cloudflare Builds Preview on the latest head; GitHub Wrangler dry-run alone is insufficient.
 
 ## P1 — Close remaining security findings
