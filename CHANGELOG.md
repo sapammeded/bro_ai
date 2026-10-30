@@ -9,4 +9,5 @@ This log records meaningful project and handover changes. Source commits remain 
 - Added `AI_WORK_RULES.md` with concise collaboration, safe coding, cost, security, and release rules.
 - Handover documentation reflects the known project snapshot; live GitHub and CI state must be rechecked at the start of each session.
 - No merge to `main` and no Cloudflare deployment are authorized by this documentation change.
-- Documentation commit SHA: to be filled after GitHub confirms the commit.
+- Initial handover commit (master context): `2a9c0d5c5176ad25b42ed255b13a45ca3744102a`.
+- Handover files were committed sequentially on `bro-ai-v1.0-foundation`; see Git history for the complete sequence.
