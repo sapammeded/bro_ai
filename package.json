@@ -1,9 +1,10 @@
 {
   "name": "bro-ai",
-  "version": "0.6.1",
+  "version": "1.0.0",
   "private": true,
-  "description": "BRO AI — official-site handoff plus provider API routing",
+  "description": "BRO AI — free-first multi-provider personal assistant foundation",
+  "type": "module",
   "scripts": {
-    "test": "node test_handoff.js"
+    "test": "node --test"
   }
 }
