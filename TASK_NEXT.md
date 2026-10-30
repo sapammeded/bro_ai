@@ -25,9 +25,14 @@
 - No API keys or tokens are committed.
 - No change is merged to `main` and no production Worker is deployed without explicit owner approval.
 
+## P0 — Verify latest frontend security changes
+- Confirm the new sessionStorage migration and frontend security assertions pass in CI.
+- Run a browser-based XSS/DOM test against user messages, imported history, persona labels, notes, and modal content.
+- Verify Cloudflare Builds Preview on the latest head; GitHub Wrangler dry-run alone is insufficient.
+
 ## P1 — Close remaining security findings
 - Decide on a dedicated BRO AI custom domain before production to reduce same-origin localStorage token exposure.
-- Evaluate a safer short-lived/session-based frontend credential design; do not claim localStorage can be made safe against same-origin script execution.
+- Evaluate a safer short-lived/session-based frontend credential design; do not claim localStorage can be made safe against same-origin script execution. Consider a short-lived server-issued session/token exchange if a trusted authentication layer becomes available.
 - Add adversarial frontend rendering tests for HTML/script payloads.
 
 ## P2 — Improve the handover workflow
