@@ -106,7 +106,7 @@ The official-site handoff mode remains a manual handoff. It opens the provider's
 
 ## CI and tests
 
-GitHub Actions runs `npm test` for pull requests targeting `main` and pushes to `main`. Workflow permissions are read-only. The test suite covers authentication, origin rejection, CORS preflight, rate-limit enforcement, body size, history validation, paid-provider gating, fallback statuses, sanitized errors, and malformed provider responses.
+GitHub Actions runs `npm test` for pull requests targeting `main` and pushes to `main`. Workflow permissions are read-only. CI runs the Node test suite and a Wrangler 4.36.0 dry-run bundle/config validation. The test suite covers authentication, origin rejection, CORS preflight, rate-limit enforcement, body size, history validation, paid-provider gating, fallback statuses, sanitized errors, and malformed provider responses.
 
 ## Validation checklist before production
 
