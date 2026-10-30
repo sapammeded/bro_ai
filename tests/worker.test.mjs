@@ -262,3 +262,28 @@ test("falls back after malformed successful provider response", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("defaults Gemini to 3.8 Flash with low thinking", async () => {
+  const originalFetch = globalThis.fetch;
+  let capturedUrl = "";
+  let capturedBody;
+  globalThis.fetch = async (url, init) => {
+    capturedUrl = String(url);
+    capturedBody = JSON.parse(init.body);
+    return new Response(JSON.stringify({
+      candidates: [{ content: { parts: [{ text: "Gemini test OK" }] } }],
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+  };
+  try {
+    const env = Object.assign(baseEnv(), { GEMINI_API_KEY: "fake-gemini" });
+    const res = await chatRequest({ provider: "gemini", message: "Halo" }, env);
+    const data = await res.json();
+    assert.equal(res.status, 200);
+    assert.match(capturedUrl, /models\\/gemini-3\\.8-flash:generateContent$/);
+    assert.equal(capturedBody.generationConfig.thinkingConfig.thinkingLevel, "low");
+    assert.equal(data.reply, "Gemini test OK");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
