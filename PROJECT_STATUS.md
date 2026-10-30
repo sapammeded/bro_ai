@@ -1,6 +1,14 @@
 # BRO AI — PROJECT STATUS
 
-> Status snapshot created 2026-10-30. Re-check GitHub before acting; this file is a handover aid, not live telemetry.
+> Status snapshot updated 2026-10-30. Re-check GitHub before acting; this file is a handover aid, not live telemetry.
+
+## Latest verified repository snapshot
+- Foundation branch head: `681e25bd00d2037f8410080caa3df56c87d99aa8`.
+- PR #1: OPEN, DRAFT, not merged; base `main`; head matches the SHA above.
+- GitHub commit status for this SHA: `pending`, zero status contexts reported.
+- Check runs for this SHA: CodeRabbit completed with conclusion `skipped`; this is not a code review approval and not a passing test suite.
+- GitHub Actions test workflow result for this exact SHA: NOT VERIFIED / no run returned by the current workflow lookup.
+- Cloudflare preview: a bot comment reported a build IN PROGRESS for earlier commit `2a9c0d5`; previous commit `48f4ea1` was reported FAILED. The exact log/root cause remains UNKNOWN. Do not treat the earlier in-progress build as proof that the latest SHA passed.
 
 ## Repository
 - Repository: https://github.com/sapammeded/bro_ai
@@ -26,10 +34,10 @@
 ## Verification state
 | Check | Current recorded state | Required action |
 |---|---|---|
-| Latest GitHub Actions on current branch head | NOT VERIFIED in this handover | Inspect latest commit and workflow runs |
+| Latest GitHub Actions on current branch head | NOT VERIFIED (no run returned for `681e25b`) | Inspect latest commit and workflow runs |
 | Node test suite | Configured; latest result NOT VERIFIED | Run CI or `npm test` |
 | Wrangler dry-run | Configured; latest result NOT VERIFIED | Inspect CI result and Wrangler output |
-| Cloudflare build | Earlier attempts reported failure; exact cause UNKNOWN | Open Cloudflare build log and capture exact error |
+| Cloudflare build | `48f4ea1` reported FAILED; `2a9c0d5` reported IN PROGRESS; latest `681e25b` not verified | Open Cloudflare build log and capture exact error |
 | Worker deployment | NOT DEPLOYED by this workflow | Do not deploy without approval |
 | PR #1 | Previously draft/open; current state must be checked | Inspect PR status and checks |
 | Main branch | Must remain untouched by this handover | Confirm branch refs before release |
