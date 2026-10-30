@@ -10,11 +10,11 @@
 1. Inspect latest head of `bro-ai-v1.0-foundation` and PR #1.
 2. Open the newest Cloudflare Preview build for the latest branch head (`01cd26a` or later).
 3. Confirm `wrangler preview` no longer fails due to missing `previews` configuration.
-4. Confirm CI covers and passes the 1 MiB streamed provider-response cap and 55-second total chat deadline.
+4. Confirm CI uses Wrangler `4.156.0` (matching Cloudflare Builds), recognizes the `[previews]` config without warnings, and passes the 1 MiB response cap and 55-second total deadline tests.
 5. If Wrangler reports a rate-limit namespace conflict, choose a confirmed-unused Preview namespace ID; do not reuse the production namespace.
 6. Inspect GitHub Actions for the same commit:
    - `npm test`
-   - Wrangler 4.36.0 deploy dry-run
+   - Wrangler 4.156.0 deploy dry-run
 7. Fix only confirmed remaining issues, add regression coverage where appropriate, and inspect the final diff.
 8. Update `PROJECT_STATUS.md`, `TASK_NEXT.md`, and `CHANGELOG.md` with exact evidence.
 
