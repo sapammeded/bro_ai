@@ -2,27 +2,27 @@
 
 > Priority task list for the next AI collaborator. Verify repository state before starting.
 
-## P0 — Verify and close the v1.0.1 foundation gate
+## P0 — Verify the Preview configuration fix
 
-**Goal:** Establish whether the foundation branch is actually green and identify the exact cause of any Cloudflare build failure.
+**Goal:** Confirm Cloudflare Preview now builds after the missing `[previews]` block was fixed.
 
 ### Steps
-1. Inspect the latest head SHA of `bro-ai-v1.0-foundation`.
-2. Inspect PR #1 state, draft flag, mergeability, and all check runs.
-3. Run or inspect the latest GitHub Actions run for that exact head:
+1. Inspect latest head of `bro-ai-v1.0-foundation` and PR #1.
+2. Open the newest Cloudflare Preview build for commit `7b2da16917558354f89a8128e29d950e98d1cfcf`.
+3. Confirm `wrangler preview` no longer fails due to missing `previews` configuration.
+4. If Wrangler reports a rate-limit namespace conflict, choose a confirmed-unused Preview namespace ID; do not reuse the production namespace.
+5. Inspect GitHub Actions for the same commit:
    - `npm test`
    - Wrangler 4.36.0 deploy dry-run
-4. Inspect the latest Cloudflare Workers build log. Previous Cloudflare failures were reported, but their root cause is unknown. Obtain the exact failing step and error text; do not infer.
-5. Fix only confirmed issues. Add or update regression tests for each bug.
-6. Re-run all checks and inspect the final diff.
-7. Update `PROJECT_STATUS.md`, `TASK_NEXT.md`, and `CHANGELOG.md` with evidence.
+6. Fix only confirmed remaining issues, add regression coverage where appropriate, and inspect the final diff.
+7. Update `PROJECT_STATUS.md`, `TASK_NEXT.md`, and `CHANGELOG.md` with exact evidence.
 
 ### Acceptance criteria
+- Cloudflare Preview build succeeds.
 - Test suite passes on the latest foundation commit.
 - Wrangler dry-run succeeds.
-- Cloudflare build succeeds or a clearly documented external blocker is provided.
 - No API keys or tokens are committed.
-- No change is merged to `main` and no Worker is deployed without explicit owner approval.
+- No change is merged to `main` and no production Worker is deployed without explicit owner approval.
 
 ## P1 — Improve the handover workflow
 After P0 is green:
