@@ -23,7 +23,7 @@ const MAX_MESSAGE_CHARS = 12000;
 const MAX_SYSTEM_CHARS = 7000;
 const MAX_HISTORY_ITEMS = 16;
 const MAX_HISTORY_ITEM_CHARS = 3000;
-const PROVIDER_TIMEOUT_MS = 25000;
+const PROVIDER_TIMEOUT_MS = 45000;
 const MAX_CHAT_DURATION_MS = 55000;
 const MAX_PROVIDER_RESPONSE_BYTES = 1024 * 1024;
 
@@ -140,7 +140,7 @@ async function callGemini(body, env, timeoutMs) {
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: body.system }] },
       contents,
-      generationConfig: { maxOutputTokens: 3000, temperature: 0.65 },
+      generationConfig: { maxOutputTokens: 3000, thinkingConfig: { thinkingLevel: "low" } },
     }),
   }, "gemini", model, timeoutMs);
 }
