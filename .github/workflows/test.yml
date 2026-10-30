@@ -23,3 +23,5 @@ jobs:
           node-version: 22
       - name: Run test suite
         run: npm test
+      - name: Validate Cloudflare Worker bundle and Wrangler configuration
+        run: npx --yes wrangler@4.36.0 deploy --dry-run
