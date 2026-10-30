@@ -1,24 +1,24 @@
 # BRO AI — PROJECT STATUS
 
-> Status snapshot updated 2026-10-30. Re-check GitHub before acting; this file is a handover aid, not live telemetry.
+> Status snapshot updated 2026-10-30. Re-check GitHub and Cloudflare before acting; this file is a handover aid, not live telemetry.
 
-## Last live verification snapshot (2026-10-30)
-- At verification time, foundation branch / PR #1 head was `681e25bd00d2037f8410080caa3df56c87d99aa8`; PR #1 was OPEN, DRAFT, not merged, targeting `main`.
-- GitHub commit status for that SHA: `pending`, zero status contexts reported.
-- Check runs for that SHA: CodeRabbit completed with conclusion `skipped`; this is not a code review approval and not a passing test suite.
-- GitHub Actions test workflow result for that exact SHA: NOT VERIFIED / no run returned by the current workflow lookup.
-- Cloudflare preview: a bot comment reported a build IN PROGRESS for earlier commit `2a9c0d5`; previous commit `48f4ea1` was reported FAILED. The exact log/root cause remains UNKNOWN.
-- Subsequent commits in this handover sequence only added/updated project documentation. Incoming AI must still inspect the live branch head, PR, checks, and Cloudflare build before coding or making release claims.
+## Latest verified state
+- Work branch: `bro-ai-v1.0-foundation`.
+- Latest commit after Preview configuration fix: `7b2da16917558354f89a8128e29d950e98d1cfcf`.
+- PR #1: OPEN, DRAFT, not merged; targets `main`.
+- PR: https://github.com/sapammeded/bro_ai/pull/1
+- Merge/deploy authorization: **NOT GRANTED**.
+- Cloudflare failed Preview log for commit `715539f` identified the exact cause: Cloudflare Builds ran `npx wrangler preview`, but `wrangler.toml` had no `[previews]` configuration. Wrangler explicitly requested Preview vars and a Preview rate-limit binding.
+- Fixed on the work branch by adding `[previews.vars]` and a separate `[[previews.ratelimits]]` binding with namespace ID `2026103002`; production configuration remains unchanged.
+- The Preview build after this fix and CI checks for the new head are **PENDING / NOT YET VERIFIED**. Do not claim the fix is validated until Cloudflare and GitHub report results.
 
 ## Repository
 - Repository: https://github.com/sapammeded/bro_ai
 - Work branch: `bro-ai-v1.0-foundation`
 - Target/default branch: `main`
 - Existing PR: https://github.com/sapammeded/bro_ai/pull/1
-- PR purpose: v1.0 foundation / free-first multi-provider router.
-- Merge/deploy authorization: **NOT GRANTED**.
 
-## Implemented on foundation branch (documented snapshot)
+## Implemented on foundation branch (source snapshot)
 - Free-first Gemini then OpenRouter free routing.
 - Optional Groq route disabled by default.
 - Optional paid OpenAI, Anthropic, and DeepSeek routes disabled by default.
@@ -29,33 +29,30 @@
 - Sanitized provider failure information.
 - Frontend provider/model attribution and updated health-check parsing.
 - Worker tests and GitHub Actions workflow including Wrangler dry-run.
-- README and implementation guide updated.
+- Cloudflare Preview configuration now mirrors safe non-secret vars and defines a separate rate-limit namespace.
 
 ## Verification state
-| Check | Current recorded state | Required action |
+| Check | State | Evidence / next action |
 |---|---|---|
-| Latest GitHub Actions | NOT VERIFIED at last checked SHA `681e25b` | Inspect latest commit and workflow runs |
-| Node test suite | Configured; latest result NOT VERIFIED | Run CI or `npm test` |
-| Wrangler dry-run | Configured; latest result NOT VERIFIED | Inspect CI result and Wrangler output |
-| Cloudflare build | `48f4ea1` reported FAILED; `2a9c0d5` reported IN PROGRESS; latest `681e25b` not verified | Open Cloudflare build log and capture exact error |
-| Worker deployment | NOT DEPLOYED by this workflow | Do not deploy without approval |
-| PR #1 | Previously draft/open; current state must be checked | Inspect PR status and checks |
-| Main branch | Must remain untouched by this handover | Confirm branch refs before release |
+| Cloudflare Preview before fix | FAIL | Build log: missing `previews` block on commit `715539f` |
+| Cloudflare Preview after fix | PENDING | Check newest build for head `7b2da16` |
+| GitHub Actions for `7b2da16` | NOT YET RETURNED | Inspect workflow run and job output |
+| Node test suite | NOT VERIFIED for latest head | Confirm CI `npm test` |
+| Wrangler dry-run | NOT VERIFIED for latest head | Confirm CI output |
+| Production Worker | No deployment performed by this fix | No deployment authorized |
+| PR #1 | OPEN / DRAFT / NOT MERGED | Keep draft until all gates pass |
 
 ## Known engineering caveats
 1. Cloudflare built-in rate limiting is approximate per location, not a strict global quota.
 2. Frontend currently stores the Worker access token in localStorage; same-origin JavaScript exposure is a risk.
 3. GitHub Pages repositories under the same account share the same origin; consider a dedicated custom domain before production.
 4. Provider free-tier availability, model names, and quotas can change; verify before deployment.
-5. Earlier Cloudflare build failures were visible in status comments, but the root cause was not established. Do not guess.
+5. Preview rate-limit namespace ID `2026103002` is intended to be distinct from production ID `2026103001`; confirm it is unused in this Cloudflare account if Wrangler reports a namespace conflict.
 
-## Current release gate
+## Release gate
 Do not merge or deploy until:
 - Latest tests pass.
 - Wrangler dry-run passes.
-- Cloudflare build failure is understood and resolved (if still applicable).
-- Secrets and rate-limit namespace are configured correctly.
+- Cloudflare Preview build succeeds.
+- Secrets and rate-limit namespaces are configured correctly.
 - Owner explicitly approves release.
-
-## Update discipline
-When changing this file, include the date, exact branch head SHA, and links/evidence for CI and Cloudflare build status. Never turn NOT VERIFIED into PASS without evidence.
