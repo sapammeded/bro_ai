@@ -26,10 +26,10 @@ button,input,textarea,select{font:inherit}button{cursor:pointer;color:var(--text
   <aside class="panel side">
     <div class="section-title">Pilih persona AI</div>
     <div class="personas" id="personas">
-      <button class="persona active" data-ai="chatgpt"><span class="avatar a-chantika">C</span><span><strong>Chantika</strong><small>ChatGPT · OpenAI</small></span><span class="pill">AI 01</span></button>
-      <button class="persona" data-ai="claude"><span class="avatar a-clara">Cl</span><span><strong>Clara</strong><small>Claude · Anthropic</small></span><span class="pill">AI 02</span></button>
-      <button class="persona" data-ai="gemini"><span class="avatar a-gendis">G</span><span><strong>Gendis</strong><small>Gemini · Google</small></span><span class="pill">AI 03</span></button>
-      <button class="persona" data-ai="deepseek"><span class="avatar a-denada">D</span><span><strong>Denada</strong><small>DeepSeek</small></span><span class="pill">AI 04</span></button>
+      <button class="persona active" data-ai="chatgpt"><span class="avatar a-chantika">C</span><span><strong>Chantika</strong><small>Persona · Umum</small></span><span class="pill">AI 01</span></button>
+      <button class="persona" data-ai="claude"><span class="avatar a-clara">Cl</span><span><strong>Clara</strong><small>Persona · Analitis</small></span><span class="pill">AI 02</span></button>
+      <button class="persona" data-ai="gemini"><span class="avatar a-gendis">G</span><span><strong>Gendis</strong><small>Persona · Kreatif</small></span><span class="pill">AI 03</span></button>
+      <button class="persona" data-ai="deepseek"><span class="avatar a-denada">D</span><span><strong>Denada</strong><small>Persona · Logis</small></span><span class="pill">AI 04</span></button>
     </div>
     <div class="divider"></div>
     <div class="section-title">Metode chat</div>
@@ -50,7 +50,7 @@ button,input,textarea,select{font:inherit}button{cursor:pointer;color:var(--text
     <p class="small">Webapp dibuka di tab baru. Sebagian situs menolak ditampilkan di dalam aplikasi; URL saja tidak otomatis memberi BRO AI izin mengoperasikannya.</p>
     <div class="divider"></div>
     <div class="row"><button class="grow" id="voiceSettings">Pengaturan suara</button><button class="grow" id="clearChat">Hapus chat</button></div>
-    <div class="row" style="margin-top:8px"><button class="grow" id="exportBtn">Ekspor data</button><button class="grow" id="importBtn">Impor data</button></div><input id="importFile" type="file" accept="application/json" class="hidden"><div class="footer-note">BRO AI v0.4.0 · Multi-provider<br>Jangan masukkan password sensitif ke chat.</div>
+    <div class="row" style="margin-top:8px"><button class="grow" id="exportBtn">Ekspor data</button><button class="grow" id="importBtn">Impor data</button></div><input id="importFile" type="file" accept="application/json" class="hidden"><div class="footer-note">BRO AI v1.0 FOUNDATION · Free-first multi-AI<br>Jangan masukkan password sensitif ke chat.</div>
   </aside>
   <main class="panel chat">
     <div class="chat-head"><div><h2 id="activeTitle">Chantika · ChatGPT</h2><p id="activeSubtitle">Panggil “Hai Chantika” untuk memilih persona ini.</p></div><div class="chat-actions"><button id="compareBtn" title="Kirim pertanyaan ke semua AI">⚖ Bandingkan</button><button id="convoBtn" title="Mode bicara terus (hands-free)">🗣 Percakapan</button><button id="speakToggle" title="Aktif/nonaktif suara">🔊 Suara ON</button></div></div>
@@ -70,16 +70,17 @@ button,input,textarea,select{font:inherit}button{cursor:pointer;color:var(--text
 const $ = id => document.getElementById(id);
 const welcomeEl=$('welcome');
 const personas = {
- chatgpt:{name:'Chantika',provider:'ChatGPT · OpenAI',ai:'chatgpt',greeting:'Hai, Bos. Chantika di sini. Ada yang bisa gw bantu?',system:'Nama kamu Chantika, persona asisten wanita Indonesia yang hangat, natural, jelas, cerdas, dan jujur. Gunakan bahasa Indonesia santai dan panggil pengguna Bos atau bro sewajarnya. Jangan mengaku sebagai manusia. Jangan mengarang hasil tool atau tindakan yang belum dilakukan.'},
- claude:{name:'Clara',provider:'Claude · Anthropic',ai:'claude',greeting:'Halo, Bos. Clara siap membantu dengan teliti.',system:'Nama kamu Clara, persona asisten wanita Indonesia yang tenang, teliti, analitis, dan jelas. Gunakan bahasa Indonesia natural. Jangan mengaku sebagai manusia. Jangan mengarang hasil tool atau tindakan yang belum dilakukan.'},
- gemini:{name:'Gendis',provider:'Gemini · Google',ai:'gemini',greeting:'Hai, Bos. Gendis siap bantu cari ide dan solusi.',system:'Nama kamu Gendis, persona asisten wanita Indonesia yang kreatif, energik, praktis, dan komunikatif. Gunakan bahasa Indonesia natural. Jangan mengaku sebagai manusia. Jangan mengarang hasil tool atau tindakan yang belum dilakukan.'},
- deepseek:{name:'Denada',provider:'DeepSeek',ai:'deepseek',greeting:'Halo, Bos. Denada siap berpikir sistematis bareng lo.',system:'Nama kamu Denada, persona asisten wanita Indonesia yang lugas, logis, sistematis, dan fokus pada pemecahan masalah. Gunakan bahasa Indonesia natural. Jangan mengaku sebagai manusia. Jangan mengarang hasil tool atau tindakan yang belum dilakukan.'}
+ chatgpt:{name:'Chantika',provider:'BRO AI Auto Router',ai:'chatgpt',greeting:'Hai, Bos. Chantika di sini. Ada yang bisa gw bantu?',system:'Nama kamu Chantika, persona asisten wanita Indonesia yang hangat, natural, jelas, cerdas, dan jujur. Gunakan bahasa Indonesia santai dan panggil pengguna Bos atau bro sewajarnya. Jangan mengaku sebagai manusia. Jangan mengarang hasil tool atau tindakan yang belum dilakukan.'},
+ claude:{name:'Clara',provider:'BRO AI Auto Router',ai:'claude',greeting:'Halo, Bos. Clara siap membantu dengan teliti.',system:'Nama kamu Clara, persona asisten wanita Indonesia yang tenang, teliti, analitis, dan jelas. Gunakan bahasa Indonesia natural. Jangan mengaku sebagai manusia. Jangan mengarang hasil tool atau tindakan yang belum dilakukan.'},
+ gemini:{name:'Gendis',provider:'BRO AI Auto Router',ai:'gemini',greeting:'Hai, Bos. Gendis siap bantu cari ide dan solusi.',system:'Nama kamu Gendis, persona asisten wanita Indonesia yang kreatif, energik, praktis, dan komunikatif. Gunakan bahasa Indonesia natural. Jangan mengaku sebagai manusia. Jangan mengarang hasil tool atau tindakan yang belum dilakukan.'},
+ deepseek:{name:'Denada',provider:'BRO AI Auto Router',ai:'deepseek',greeting:'Halo, Bos. Denada siap berpikir sistematis bareng lo.',system:'Nama kamu Denada, persona asisten wanita Indonesia yang lugas, logis, sistematis, dan fokus pada pemecahan masalah. Gunakan bahasa Indonesia natural. Jangan mengaku sebagai manusia. Jangan mengarang hasil tool atau tindakan yang belum dilakukan.'}
 };
 let activeAI='chatgpt', listening=false, speechEnabled=true, recognition=null, busy=false, convo=false, abortCtl=null;
 let history = safeRead('bro_ai_history_v03', []);
 let webapps = safeRead('bro_ai_webapps_v03', []);
-let settings = Object.assign({workerUrl:'',voiceName:'',rate:1,autoSpeak:true,token:'',notes:[],handoffCtx:true,modes:{chatgpt:'handoff',claude:'handoff',gemini:'direct',deepseek:'handoff'}},safeRead('bro_ai_settings_v03',{}));
-settings.modes=Object.assign({chatgpt:'handoff',claude:'handoff',gemini:'direct',deepseek:'handoff'},settings.modes||{});
+let settings = Object.assign({workerUrl:'',voiceName:'',rate:1,autoSpeak:true,token:'',notes:[],handoffCtx:true,modes:{chatgpt:'direct',claude:'direct',gemini:'direct',deepseek:'direct'}},safeRead('bro_ai_settings_v03',{}));
+settings.modes=Object.assign({chatgpt:'direct',claude:'direct',gemini:'direct',deepseek:'direct'},settings.modes||{});
+if(!settings.routerV1){settings.modes={chatgpt:'direct',claude:'direct',gemini:'direct',deepseek:'direct'};settings.routerV1=true;save('bro_ai_settings_v03',settings);}
 function safeRead(k,f){try{const x=JSON.parse(localStorage.getItem(k));return x==null?f:x}catch{return f}}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 function toast(t){$('toast').textContent=t;$('toast').classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.add('hidden'),3500)}
@@ -111,7 +112,7 @@ function updModeUI(){
  $('modeDirect').classList.toggle('on',m==='direct');$('modeSite').classList.toggle('on',m==='handoff');
  $('modeNote').textContent=m==='handoff'
   ?'Situs resmi dibuka di tab baru. Pesan disalin untuk ditempel; balasan tidak otomatis kembali ke BRO AI.'
-  :'Menggunakan API melalui Worker. Kuota/biaya mengikuti provider; API berbayar ditolak Worker secara default.';
+  :'Worker mencoba Gemini free tier lalu OpenRouter free. Provider lain opsional; jalur berbayar tetap nonaktif secara default.';
  $('hoCtx').checked=settings.handoffCtx!==false;
 }
 function setMode(mode){
