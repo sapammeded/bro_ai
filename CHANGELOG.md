@@ -1,5 +1,14 @@
 # BRO AI — CHANGELOG
 
+## 2026-10-30 — Frontend token storage and XSS audit
+- Moved the Worker access token from persistent localStorage to tab-scoped sessionStorage; legacy tokens are migrated and removed from saved settings on startup.
+- Confirmed message rendering escapes HTML before limited Markdown formatting; added frontend security regression assertions to `test_handoff.js`.
+- This does not prevent same-origin script execution from reading the token during an active session; full browser DOM/XSS testing remains outstanding.
+- Cloudflare Preview still needs independent verification; GitHub Wrangler dry-run is not equivalent to a Cloudflare Build.
+- Source commits: `124c653`, `90115d0`, `8733372`, `346444f`.
+- No merge to `main` and no production deployment performed.
+
+
 ## 2026-10-30 — Align CI Wrangler with Cloudflare Builds
 - CI previously used Wrangler 4.36.0; its dry-run passed but warned that the `previews` field was unexpected.
 - Updated CI to Wrangler 4.156.0, matching the version reported in Cloudflare Builds, so Preview config validation is meaningful.
