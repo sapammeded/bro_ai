@@ -27,6 +27,7 @@ const server = http.createServer((req,res) => {
     await context.addInitScript(()=>{
       localStorage.setItem('bro_ai_settings_v03',JSON.stringify({workerUrl:'',token:'legacy-session-token',modes:{chatgpt:'direct'}}));
       localStorage.setItem('bro_ai_history_v03',JSON.stringify([{role:'user',content:'<img src=x onerror=window.__xss=1>','label':'LO'}]));
+      localStorage.setItem('bro_ai_webapps_v03',JSON.stringify([{name:'<img src=x onerror=window.__xss=6>',url:'https://example.com/'}]));
     });
     const page=await context.newPage();
     await page.goto('http://127.0.0.1:'+address.port+'/index.html');
@@ -56,7 +57,7 @@ const server = http.createServer((req,res) => {
     assert.equal(await page.locator('.messages img, .messages svg').count(),0);
     assert.equal(await page.evaluate(()=>window.__xss||0),0);
     assert.ok((await page.locator('.messages').innerText()).includes('<img src=x'));
-    console.log('PASS: Chromium DOM/XSS checks — token migration, session-only token, imported history, user input, assistant response');
+    console.log('PASS: Chromium DOM/XSS checks — token migration, session-only token, imported history/webapp labels, notes, modal voice names, user input, assistant response');
   } finally {
     await browser.close();
     await new Promise(resolve=>server.close(resolve));
