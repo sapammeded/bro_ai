@@ -19,3 +19,11 @@ This log records meaningful project and handover changes. Source commits remain 
 - Recorded Cloudflare preview signals for earlier commits without treating them as proof for the latest head.
 - Status update commit: `18d544e414a1f84ff9b5591b0c1a2e79d044b60c`.
 - No merge or production deployment performed.
+
+
+## 2026-10-30 — One-step AI entrypoint
+- Added `AI_START_HERE.md` so a new Claude account or other AI collaborator has one short starting instruction and a defined first task.
+- Linked the entrypoint from `BRO_AI_MASTER_CONTEXT.md` and clarified that verification data is a timestamped snapshot.
+- Documentation-only correction: an unintended changelog file addition on `main` was immediately deleted; the file is absent from `main` again. No application code was changed there.
+- Main cleanup commit: `981cd91b758bbb6b991016838a8ab97270ad6fde`.
+- No merge or production deployment performed.
