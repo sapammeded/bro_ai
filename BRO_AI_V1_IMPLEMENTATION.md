@@ -6,7 +6,7 @@ Status: **security/reliability patch on foundation branch; not merged. Latest ba
 
 BRO AI preserves its Android-friendly single-page frontend and Cloudflare Worker backend.
 
-The frontend currently includes four personas, direct API / official-site handoff modes, browser speech recognition and synthesis, local chat history, local notes, webapp shortcuts, and JSON backup/restore. Chat history, notes, provider settings, Worker URL, and the access token are stored in browser localStorage.
+The frontend currently includes four personas, direct API / official-site handoff modes, browser speech recognition and synthesis, local chat history, local notes, webapp shortcuts, and JSON backup/restore. Chat history, notes, provider settings, and Worker URL are stored in localStorage. The Worker access token is now stored in tab-scoped sessionStorage; legacy tokens are migrated out of localStorage when the app starts.
 
 ## v1.0.1 security and reliability patch
 
@@ -16,6 +16,8 @@ The frontend currently includes four personas, direct API / official-site handof
 - Provider fallback now covers network errors, HTTP 401, 403, 404, 408, 429, and upstream 5xx responses.
 - Each upstream provider request has a 25-second timeout, with a 55-second total deadline for one chat request.
 - Upstream provider response bodies are streamed and capped at 1 MiB before JSON parsing.
+- Worker access token is tab-scoped in sessionStorage, not persistently stored in localStorage.
+- User and assistant message rendering escapes HTML before applying the limited Markdown formatting; do not introduce unescaped `innerHTML` paths.
 - The Worker rejects request bodies larger than 64 KB.
 - Chat messages are limited to 12,000 characters; system instructions to 7,000 characters; history to 16 messages with a 3,000-character cap per history message.
 - A required Cloudflare Rate Limiting binding limits each access token to 20 chat requests per 60 seconds (approximate per Cloudflare location).
@@ -84,7 +86,7 @@ The configured origin must match the frontend's browser origin exactly, includin
 
 CORS only controls browser-origin access. A non-browser client can omit the Origin header, so the Bearer token is the actual authentication control.
 
-The current frontend stores that token in localStorage. This is convenient but means any JavaScript executing on the same origin could potentially read it. GitHub Pages repositories under the same account share the same origin. A dedicated custom domain for BRO AI is recommended before production use. Rotate the token immediately if it may have been exposed; update both the Worker Secret and frontend setting.
+The frontend now stores the Worker token in sessionStorage for the current tab session instead of persistent localStorage; an older localStorage token is migrated and removed on startup. This reduces persistence on a shared device but does **not** protect the token from same-origin JavaScript or XSS while the app is open. GitHub Pages repositories under the same account share the same origin. A dedicated custom domain is recommended, but it does not replace XSS prevention. Rotate the token immediately if it may have been exposed.
 
 ### Rate limit behavior
 
