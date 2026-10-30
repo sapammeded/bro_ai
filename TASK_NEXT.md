@@ -4,18 +4,18 @@
 
 ## P0 — Foundation verification gates: COMPLETE
 
-- GitHub Actions #59 on commit `585d772`: PASS.
-- Chromium browser DOM/XSS regression tests: PASS for token migration/session storage, imported history, user messages, and assistant responses.
+- GitHub Actions #62 on commit `d722ec8`: PASS.
+- Chromium browser DOM/XSS regression tests: PASS for token migration/session storage, imported history, webapp labels, notes, modal voice names, user messages, and assistant responses.
 - Worker unit tests and static frontend security assertions: PASS.
 - Wrangler 4.156.0 `deploy --dry-run`: PASS.
-- Cloudflare Workers Builds Preview: Build + Preview deployment SUCCESS on commit `cb001e3`; preview URL is `https://e4441b0c-bro-ai.sapammeded.workers.dev`.
-- GitHub Actions #60 on documentation head `cb001e3`: PASS.
+- Cloudflare Workers Builds Preview: Build + Preview deployment SUCCESS on commit `d722ec8`; latest preview deployment is confirmed by Cloudflare's PR status check.
+- GitHub Actions #61 on documentation head `311768e`: PASS.
 - PR #1 remains OPEN / DRAFT / NOT MERGED. No production deployment. Owner has not authorized merge or release.
 
 ## P1 — Complete security review before release
 
-1. Review the final PR diff for any untested HTML/DOM sinks, especially `openModal`, imported data, webapp labels/URLs, notes, and any future Markdown changes.
-2. Expand Chromium tests for malicious persona labels, notes, webapp names/URLs, malformed imported JSON, and repeated chat rendering.
+1. Review the final PR diff for any remaining untested HTML/DOM sinks and unsafe URL handling.
+2. Add Chromium cases for malformed imported JSON, persona metadata, and repeated chat rendering.
 3. Evaluate a short-lived server-issued session design so a long-lived shared Bearer token is not exposed to same-origin JavaScript. Do not claim `sessionStorage` prevents XSS access.
 4. Evaluate a dedicated origin and a restrictive Content Security Policy. Do not weaken current authentication or provider limits.
 5. Confirm Preview and production rate-limit namespace IDs are unique in the Cloudflare account before any production deployment.

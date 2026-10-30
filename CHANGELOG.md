@@ -1,5 +1,14 @@
 # BRO AI — CHANGELOG
 
+## 2026-10-30 — Expanded browser XSS coverage and final P0 verification
+- Expanded Chromium tests to cover imported webapp labels, notes command output, and modal voice names in addition to imported history, user input, assistant output, and session-token migration.
+- GitHub Actions #62 (`41041008447`) passed on commit `d722ec8`: Node test suite, Chromium DOM/XSS tests, and Wrangler 4.156.0 dry-run.
+- Cloudflare Workers Builds Preview build succeeded on commit `d722ec8` (build `a2be9a33-4ca7-4b6d-ba0c-f486047b073a`).
+- Updated `PROJECT_STATUS.md` and `TASK_NEXT.md`; P0 verification remains complete.
+- PR #1 remains open/draft; no production deployment or merge.
+
+
+
 ## 2026-10-30 — Browser security audit and Cloudflare Preview verification
 - Added `tests/frontend-browser.test.cjs`, which launches Chromium and exercises the frontend against hostile HTML payloads in imported history, user input, and mocked assistant output.
 - Added a CI step to install Chromium and run the browser regression suite.
