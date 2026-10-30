@@ -40,7 +40,7 @@
 | Cloudflare Preview before fix | FAIL | Build log: missing `previews` block on commit `715539f` |
 | Cloudflare Preview after fix | NOT VERIFIED | Check Cloudflare Builds dashboard for newest Preview build; GitHub dry-run is not equivalent |
 | GitHub Actions for latest hardening head | PASS for code commit `01cd26a`; rerun pending after Wrangler pin | Run #41 (`41039185403`) |
-| Node test suite | PASS 20/20 on commit `01cd26a`; new frontend assertions pending CI | Confirm next `npm test` result |
+| Node test suite | PASS: 12 handoff + 7 frontend assertions + 20 Worker tests on `346444f` (#51) | [Run #51](https://github.com/sapammeded/bro_ai/actions/runs/41039898501) |
 | Wrangler dry-run | IN PROGRESS / NOT YET VERIFIED | Confirm CI output on latest head |
 | Production Worker | No deployment performed by this fix | No deployment authorized |
 | PR #1 | OPEN / DRAFT / NOT MERGED | Keep draft until all gates pass |
