@@ -1,259 +1,392 @@
 /**
- * BRO AI Multi-AI Worker — v0.6.1
- * Cloudflare Worker router for OpenAI, Anthropic, Gemini, and DeepSeek.
- * All provider API keys remain in Worker Secrets, never in the public HTML.
+ * BRO AI Worker v1.0.1 — security and reliability patch
+ * Free-first routing, bounded requests, token-scoped rate limiting.
  */
-const PROVIDERS = {
-  chatgpt: {
-    secret: "OPENAI_API_KEY",
-    model: "OPENAI_MODEL",
-    defaultModel: "gpt-4o-mini",
-    endpoint: "https://api.openai.com/v1/chat/completions",
-  },
-  claude: {
-    secret: "ANTHROPIC_API_KEY",
-    model: "ANTHROPIC_MODEL",
-    defaultModel: "claude-3-5-haiku-latest",
-    endpoint: "https://api.anthropic.com/v1/messages",
-  },
-  gemini: {
-    secret: "GEMINI_API_KEY",
-    model: "GEMINI_MODEL",
-    defaultModel: "gemini-3.8-flash",
-    endpoint: null,
-  },
-  deepseek: {
-    secret: "DEEPSEEK_API_KEY",
-    model: "DEEPSEEK_MODEL",
-    defaultModel: "deepseek-flash",
-    endpoint: "https://api.deepseek.com/chat/completions",
-  },
-};
-
 const JSON_HEADERS = {
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store",
   "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "no-referrer",
 };
 
-function json(data, status = 200, extra = {}) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...JSON_HEADERS, ...extra },
-  });
+const PERSONAS = { chatgpt: "chatgpt", claude: "claude", gemini: "gemini", deepseek: "deepseek", auto: "auto" };
+const DEFAULTS = {
+  GEMINI_MODEL: "gemini-2.5-flash",
+  OPENROUTER_MODEL: "openrouter/free",
+  GROQ_MODEL: "openai/gpt-oss-20b",
+  OPENAI_MODEL: "gpt-4o-mini",
+  ANTHROPIC_MODEL: "claude-3-5-haiku-latest",
+  DEEPSEEK_MODEL: "deepseek-chat",
+};
+const MAX_BODY_BYTES = 64 * 1024;
+const MAX_MESSAGE_CHARS = 12000;
+const MAX_SYSTEM_CHARS = 7000;
+const MAX_HISTORY_ITEMS = 16;
+const MAX_HISTORY_ITEM_CHARS = 3000;
+const PROVIDER_TIMEOUT_MS = 45000;
+const MAX_CHAT_DURATION_MS = 55000;
+const MAX_PROVIDER_RESPONSE_BYTES = 1024 * 1024;
+
+function json(data, status, headers) {
+  return new Response(JSON.stringify(data), { status: status || 200, headers: Object.assign({}, JSON_HEADERS, headers || {}) });
 }
 
-function allowedOrigin(request, env) {
+function corsHeaders(request, env) {
   const origin = request.headers.get("Origin");
-  const configured = String(env.BRO_ALLOWED_ORIGIN || "").trim();
-  // Configure BRO_ALLOWED_ORIGIN as comma-separated exact origins for production.
-  // If unset, browser origins are reflected only for requests that have an Origin.
-  // Bearer-token validation remains mandatory regardless of CORS.
-  if (!origin) return null;
-  if (!configured) return origin;
-  const list = configured.split(",").map((s) => s.trim()).filter(Boolean);
-  // The production frontend is hosted on this exact GitHub Pages origin.
-  // Keep this explicit origin allowed even if an older BRO_ALLOWED_ORIGIN value remains in Cloudflare.
-  const trustedFrontend = origin === "https://sapammeded.github.io";
-  return list.includes(origin) || trustedFrontend ? origin : "";
-}
-
-function withCors(request, env) {
-  const origin = allowedOrigin(request, env);
-  const h = {
-    ...JSON_HEADERS,
+  const allowed = String(env.BRO_ALLOWED_ORIGIN || "").split(",").map((x) => x.trim()).filter(Boolean);
+  const headers = {
     "Vary": "Origin",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Max-Age": "86400",
   };
-  if (origin) h["Access-Control-Allow-Origin"] = origin;
-  return h;
+  if (origin && allowed.includes(origin)) headers["Access-Control-Allow-Origin"] = origin;
+  return headers;
 }
 
 function safeEqual(a, b) {
-  // Constant-work comparison for equal-length strings (JS cannot promise cryptographic constant time).
-  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  if (typeof a !== "string" || typeof b !== "string" || !a || !b || a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return diff === 0;
 }
 
-function authorized(request, env) {
-  const expected = String(env.BRO_ACCESS_TOKEN || "");
+function bearerToken(request) {
   const header = request.headers.get("Authorization") || "";
-  const supplied = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
-  return Boolean(expected && supplied && safeEqual(supplied, expected));
+  return header.startsWith("Bearer ") ? header.slice(7).trim() : "";
 }
 
-function paidEnabled(env) { return String(env.BRO_ALLOW_PAID || "").trim() === "1"; }
-function providerAllowed(key, env) { return key === "gemini" || paidEnabled(env); }
-function configured(env) {
-  return Object.fromEntries(Object.entries(PROVIDERS).map(([key, p]) => [key, Boolean(env[p.secret]) && providerAllowed(key, env)]));
+function authorized(request, env) {
+  return safeEqual(bearerToken(request), String(env.BRO_ACCESS_TOKEN || ""));
 }
 
-function trimText(value, max = 12000) {
-  return typeof value === "string" ? value.trim().slice(0, max) : "";
+async function rateLimitKey(request) {
+  const token = bearerToken(request);
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+  return "token:" + Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function normalizeHistory(history) {
-  if (!Array.isArray(history)) return [];
-  return history.slice(-14).map((m) => {
-    const role = m && m.role === "assistant" ? "assistant" : "user";
-    return { role, content: trimText(m && m.content, 5000) };
-  }).filter((m) => m.content);
+function clean(value, max) {
+  return typeof value === "string" ? value.trim().slice(0, max || 12000) : "";
 }
 
-async function fetchWithTimeout(url, init, ms = 55000) {
+function paidEnabled(env) {
+  return String(env.BRO_ALLOW_PAID || "").trim() === "1";
+}
+
+function historyFrom(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((m) => ({
+    role: m.role,
+    content: m.content.trim(),
+  })).filter((m) => m.content);
+}
+
+function availableProviders(env) {
+  return {
+    gemini: Boolean(env.GEMINI_API_KEY),
+    openrouter: Boolean(env.OPENROUTER_API_KEY),
+    groq: Boolean(env.GROQ_API_KEY && String(env.GROQ_ENABLE || "") === "1"),
+    openai: Boolean(paidEnabled(env) && env.OPENAI_API_KEY),
+    anthropic: Boolean(paidEnabled(env) && env.ANTHROPIC_API_KEY),
+    deepseek: Boolean(paidEnabled(env) && env.DEEPSEEK_API_KEY),
+  };
+}
+
+function candidates(persona, env) {
+  const available = availableProviders(env);
+  const list = [];
+  if (paidEnabled(env)) {
+    const preferred = { chatgpt: "openai", claude: "anthropic", deepseek: "deepseek" }[persona];
+    if (preferred && available[preferred]) list.push(preferred);
+  }
+  if (available.gemini) list.push("gemini");
+  if (available.openrouter) list.push("openrouter");
+  if (available.groq) list.push("groq");
+  return Array.from(new Set(list));
+}
+
+function modelFor(provider, env) {
+  const key = provider.toUpperCase() + "_MODEL";
+  return clean(env[key], 160) || DEFAULTS[key] || "";
+}
+
+async function fetchAndParse(url, init, provider, model, timeoutMs) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ms);
+  const timer = setTimeout(() => controller.abort(), Math.max(1, timeoutMs || PROVIDER_TIMEOUT_MS));
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    const response = await fetch(url, Object.assign({}, init, { signal: controller.signal }));
+    // Keep the timeout active while reading/parsing the response body too.
+    return await parseProvider(response, provider, model);
   } finally {
     clearTimeout(timer);
   }
 }
 
-async function providerCall(provider, body, env) {
-  const p = PROVIDERS[provider];
-  if (!p) return { error: "Provider tidak dikenal.", status: 400 };
-  const key = env[p.secret];
-  if (!key) return { error: `Secret ${p.secret} belum dikonfigurasi di Cloudflare Worker.`, status: 503 };
+function messagesFor(body) {
+  return body.history.concat([{ role: "user", content: body.message }]);
+}
 
-  const model = trimText(env[p.model], 120) || p.defaultModel;
-  const messages = [
-    ...(body.history || []),
-    { role: "user", content: body.message },
-  ];
-
-  let url, headers, payload;
-  if (provider === "claude") {
-    url = p.endpoint;
-    headers = {
-      "x-api-key": key,
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
-    };
-    payload = {
-      model,
-      max_tokens: 1800,
-      system: trimText(body.system, 5000) || "Jawab dengan jelas dan akurat dalam bahasa Indonesia.",
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    };
-  } else if (provider === "gemini") {
-    url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-    headers = { "content-type": "application/json", "x-goog-api-key": key };
-    const contents = messages.map((m) => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
-    }));
-    payload = {
-      systemInstruction: { parts: [{ text: trimText(body.system, 5000) || "Jawab dengan jelas dan akurat dalam bahasa Indonesia." }] },
+async function callGemini(body, env, timeoutMs) {
+  const model = modelFor("gemini", env);
+  const url = "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent";
+  const contents = messagesFor(body).map((m) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
+  return fetchAndParse(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: body.system }] },
       contents,
-      generationConfig: { maxOutputTokens: 1800, temperature: 0.7 },
-    };
-  } else {
-    url = p.endpoint;
-    headers = { Authorization: `Bearer ${key}`, "content-type": "application/json" };
-    payload = {
-      model,
-      messages: [
-        { role: "system", content: trimText(body.system, 5000) || "Jawab dengan jelas dan akurat dalam bahasa Indonesia." },
-        ...messages,
-      ],
-      max_tokens: 1800,
-      temperature: 0.7,
-    };
-  }
+      generationConfig: { maxOutputTokens: 3000, thinkingConfig: { thinkingLevel: "low" } },
+    }),
+  }, "gemini", model, timeoutMs);
+}
 
-  let response;
+async function callOpenAICompatible(provider, body, env, timeoutMs) {
+  const cfg = {
+    openrouter: {
+      key: env.OPENROUTER_API_KEY,
+      url: "https://openrouter.ai/api/v1/chat/completions",
+      model: modelFor("openrouter", env),
+      extra: { "HTTP-Referer": "https://sapammeded.github.io/bro_ai/", "X-Title": "BRO AI" },
+    },
+    groq: { key: env.GROQ_API_KEY, url: "https://api.groq.com/openai/v1/chat/completions", model: modelFor("groq", env), extra: {} },
+    openai: { key: env.OPENAI_API_KEY, url: "https://api.openai.com/v1/chat/completions", model: modelFor("openai", env), extra: {} },
+    deepseek: { key: env.DEEPSEEK_API_KEY, url: "https://api.deepseek.com/chat/completions", model: modelFor("deepseek", env), extra: {} },
+  }[provider];
+
+  return fetchAndParse(cfg.url, {
+    method: "POST",
+    headers: Object.assign({ "Content-Type": "application/json", Authorization: "Bearer " + cfg.key }, cfg.extra),
+    body: JSON.stringify({
+      model: cfg.model,
+      messages: [{ role: "system", content: body.system }].concat(messagesFor(body)),
+      max_tokens: 3000,
+      temperature: 0.65,
+    }),
+  }, provider, cfg.model, timeoutMs);
+}
+
+async function callAnthropic(body, env, timeoutMs) {
+  const model = modelFor("anthropic", env);
+  return fetchAndParse("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify({ model, max_tokens: 3000, system: body.system, messages: messagesFor(body) }),
+  }, "anthropic", model, timeoutMs);
+}
+
+async function readResponseTextLimited(response, maxBytes) {
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
   try {
-    response = await fetchWithTimeout(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-    });
-  } catch (e) {
-    return { error: e && e.name === "AbortError" ? "Provider timeout." : "Gagal menghubungi provider AI.", status: 504 };
-  }
-
-  const raw = await response.text();
-  let data;
-  try { data = JSON.parse(raw); } catch { data = {}; }
-
-  if (!response.ok) {
-    // Do not return raw upstream body; it can contain details that should not be exposed.
-    const message = data?.error?.message || data?.message || "";
-    const clean = String(message).slice(0, 240);
-    return {
-      error: `Provider ${provider} merespons HTTP ${response.status}${clean ? `: ${clean}` : "."}`,
-      status: response.status >= 500 ? 502 : 400,
-    };
-  }
-
-  let reply = "";
-  if (provider === "claude") {
-    reply = (data.content || []).filter((x) => x.type === "text").map((x) => x.text || "").join("\n");
-  } else if (provider === "gemini") {
-    reply = (data.candidates?.[0]?.content?.parts || []).map((x) => x.text || "").join("\n");
-    if (!reply && data.promptFeedback?.blockReason) {
-      return { error: "Permintaan tidak dapat diproses karena diblokir oleh kebijakan provider.", status: 400 };
+    while (true) {
+      const part = await reader.read();
+      if (part.done) break;
+      total += part.value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel();
+        const error = new Error("Provider response exceeded the configured size limit.");
+        error.status = 502;
+        throw error;
+      }
+      chunks.push(part.value);
     }
-  } else {
-    reply = data.choices?.[0]?.message?.content || "";
+  } finally {
+    reader.releaseLock();
   }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return new TextDecoder().decode(bytes);
+}
 
-  if (!String(reply).trim()) return { error: "Provider mengirim respons kosong.", status: 502 };
-  return { reply: String(reply).trim().slice(0, 30000), model: data.model || model };
+async function parseProvider(response, provider, model) {
+  const raw = await readResponseTextLimited(response, MAX_PROVIDER_RESPONSE_BYTES);
+  let data = {};
+  try { data = JSON.parse(raw); } catch (_) {}
+  if (!response.ok) {
+    const error = new Error("Upstream provider request failed.");
+    error.status = response.status;
+    throw error;
+  }
+  let reply = "";
+  if (provider === "gemini") {
+    reply = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts || [])
+      .map((p) => p.text || "").join("\n");
+  } else if (provider === "anthropic") {
+    reply = (data.content || []).filter((p) => p.type === "text").map((p) => p.text || "").join("\n");
+  } else {
+    const content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    reply = typeof content === "string" ? content : Array.isArray(content) ? content.map((p) => p.text || "").join("\n") : "";
+  }
+  if (!reply.trim()) {
+    const error = new Error("Provider returned an empty or unsupported response.");
+    error.status = 502;
+    throw error;
+  }
+  return { reply: reply.trim().slice(0, 40000), provider, model: data.model || model };
+}
+
+async function runProvider(provider, body, env, timeoutMs) {
+  if (provider === "gemini") return callGemini(body, env, timeoutMs);
+  if (provider === "anthropic") return callAnthropic(body, env, timeoutMs);
+  return callOpenAICompatible(provider, body, env, timeoutMs);
+}
+
+function shouldFallback(error) {
+  const status = Number(error && error.status || 0);
+  return !status || status === 401 || status === 403 || status === 404 || status === 408 || status === 429 || status >= 500;
+}
+
+function validateChatBody(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return "Body harus berupa objek JSON.";
+  if (typeof body.message !== "string" || !body.message.trim()) return "Pesan tidak boleh kosong.";
+  if (body.message.length > MAX_MESSAGE_CHARS) return "Pesan terlalu panjang (maksimal 12.000 karakter).";
+  if (body.system !== undefined && (typeof body.system !== "string" || body.system.length > MAX_SYSTEM_CHARS)) return "Instruksi sistem tidak valid atau terlalu panjang.";
+  if (body.history !== undefined && !Array.isArray(body.history)) return "Riwayat percakapan harus berupa array.";
+  if (Array.isArray(body.history)) {
+    if (body.history.length > MAX_HISTORY_ITEMS) return "Riwayat terlalu panjang (maksimal 16 pesan).";
+    for (const item of body.history) {
+      if (!item || typeof item !== "object" || !["user", "assistant"].includes(item.role) ||
+          typeof item.content !== "string" || item.content.length > MAX_HISTORY_ITEM_CHARS) {
+        return "Format riwayat percakapan tidak valid.";
+      }
+    }
+  }
+  return "";
+}
+
+async function readJsonLimited(request) {
+  const declared = Number(request.headers.get("Content-Length") || 0);
+  if (declared > MAX_BODY_BYTES) return { tooLarge: true };
+  if (!request.body) return { invalid: true };
+  const reader = request.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const part = await reader.read();
+      if (part.done) break;
+      total += part.value.byteLength;
+      if (total > MAX_BODY_BYTES) {
+        await reader.cancel();
+        return { tooLarge: true };
+      }
+      chunks.push(part.value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  try { return { body: JSON.parse(new TextDecoder().decode(bytes)) }; }
+  catch (_) { return { invalid: true }; }
+}
+
+async function chat(body, env) {
+  const persona = PERSONAS[clean(body.provider, 24).toLowerCase()];
+  if (!persona) return { error: "Persona/provider tidak dikenal.", status: 400 };
+  const invalid = validateChatBody(body);
+  if (invalid) return { error: invalid, status: 400 };
+  const message = clean(body.message, MAX_MESSAGE_CHARS);
+  const system = clean(body.system, MAX_SYSTEM_CHARS) ||
+    "Kamu BRO AI, asisten pribadi yang jujur, teliti, dan membantu dalam bahasa Indonesia. Jangan mengaku telah melakukan tindakan yang belum dijalankan oleh tool.";
+  const normalized = { message, system, history: historyFrom(body.history || []) };
+  const chain = candidates(persona, env);
+  if (!chain.length) {
+    return { error: "Belum ada provider AI yang siap. Isi GEMINI_API_KEY atau OPENROUTER_API_KEY di Worker Secrets. Provider berbayar memerlukan BRO_ALLOW_PAID=1.", status: 503 };
+  }
+  const failures = [];
+  const deadline = Date.now() + MAX_CHAT_DURATION_MS;
+  for (let i = 0; i < chain.length; i++) {
+    const provider = chain[i];
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      failures.push({ provider, status: 504 });
+      break;
+    }
+    try {
+      const result = await runProvider(provider, normalized, env, Math.min(PROVIDER_TIMEOUT_MS, remainingMs));
+      return { ok: true, persona, provider: result.provider, model: result.model, reply: result.reply, fallbackUsed: i > 0 };
+    } catch (error) {
+      failures.push({ provider, status: Number(error && error.status || 0) });
+      if (Date.now() >= deadline) {
+        failures.push({ provider: "deadline", status: 504 });
+        break;
+      }
+      if (!shouldFallback(error)) break;
+    }
+  }
+  const last = failures[failures.length - 1];
+  return {
+    error: "Semua provider yang tersedia gagal. Periksa konfigurasi provider atau coba lagi nanti.",
+    status: last && (last.status === 504 || (last.status >= 400 && last.status < 500)) ? last.status : 502,
+    failures,
+  };
 }
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    const headers = withCors(request, env);
+    const headers = corsHeaders(request, env);
+    const origin = request.headers.get("Origin");
 
-    if (request.method === "OPTIONS") {
-      if (headers["Access-Control-Allow-Origin"] === undefined && request.headers.get("Origin")) {
-        return json({ ok: false, error: "Origin tidak diizinkan." }, 403, headers);
-      }
-      return new Response(null, { status: 204, headers });
+    if (origin && !headers["Access-Control-Allow-Origin"]) {
+      return json({ ok: false, error: "Origin tidak diizinkan. Atur BRO_ALLOWED_ORIGIN dengan origin frontend yang tepat." }, 403, headers);
     }
 
-    if (!["GET", "POST"].includes(request.method)) {
-      return json({ ok: false, error: "Method tidak didukung." }, 405, headers);
-    }
+    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers });
 
-    if (request.headers.get("Origin") && headers["Access-Control-Allow-Origin"] === undefined) {
-      return json({ ok: false, error: "Origin tidak diizinkan. Periksa BRO_ALLOWED_ORIGIN." }, 403, headers);
-    }
-
-    if (url.pathname.endsWith("/health") || url.pathname === "/health") {
+    if (url.pathname === "/health" || url.pathname.endsWith("/health")) {
+      if (request.method !== "GET") return json({ ok: false, error: "Gunakan GET untuk health check." }, 405, headers);
       if (!authorized(request, env)) return json({ ok: false, error: "Token akses tidak valid." }, 401, headers);
-      return json({ ok: true, service: "BRO AI Multi-AI Worker", version: "0.6.1", configured: configured(env), paidEnabled: paidEnabled(env) }, 200, headers);
+      return json({
+        ok: true,
+        service: "BRO AI Multi-Provider Worker",
+        version: "1.0.1",
+        providers: availableProviders(env),
+        paidEnabled: paidEnabled(env),
+        freeFirst: true,
+        rateLimitConfigured: Boolean(env.BRO_CHAT_LIMITER),
+        rateLimit: "20 requests per 60 seconds per access token; approximate per Cloudflare location",
+        maxRequestBytes: MAX_BODY_BYTES,
+        maxHistoryMessages: MAX_HISTORY_ITEMS,
+        providerTimeoutMs: PROVIDER_TIMEOUT_MS,
+        maxChatDurationMs: MAX_CHAT_DURATION_MS,
+        maxProviderResponseBytes: MAX_PROVIDER_RESPONSE_BYTES,
+        voice: "Browser Web Speech API (client-side)",
+        memory: "Local device until optional D1 integration is configured",
+        actions: "Approval-gated client tools; no unrestricted server execution",
+      }, 200, headers);
     }
 
-    if (url.pathname.endsWith("/chat") || url.pathname === "/chat") {
+    if (url.pathname === "/chat" || url.pathname.endsWith("/chat")) {
       if (request.method !== "POST") return json({ ok: false, error: "Gunakan POST untuk chat." }, 405, headers);
       if (!authorized(request, env)) return json({ ok: false, error: "Token akses tidak valid atau belum dikonfigurasi." }, 401, headers);
-
-      let body;
-      try { body = await request.json(); } catch { return json({ ok: false, error: "Body JSON tidak valid." }, 400, headers); }
-
-      const provider = trimText(body.provider, 30).toLowerCase();
-      const message = trimText(body.message, 12000);
-      if (!PROVIDERS[provider]) return json({ ok: false, error: "Provider tidak dikenal." }, 400, headers);
-      if (!providerAllowed(provider, env)) return json({ ok: false, error: `Provider ${provider} memakai API berbayar dan dinonaktifkan demi kebijakan biaya Rp0. Gunakan mode Situs resmi, atau set BRO_ALLOW_PAID=1 jika sengaja ingin memakai API berbayar.` }, 403, headers);
-      if (!message) return json({ ok: false, error: "Pesan tidak boleh kosong." }, 400, headers);
-      if (message.length > 12000) return json({ ok: false, error: "Pesan terlalu panjang." }, 413, headers);
-
-      const normalized = {
-        message,
-        system: trimText(body.system, 5000),
-        history: normalizeHistory(body.history),
-      };
-      const result = await providerCall(provider, normalized, env);
-      if (result.error) return json({ ok: false, error: result.error }, result.status || 502, headers);
-      return json({ ok: true, provider, reply: result.reply, model: result.model }, 200, headers);
+      if (!env.BRO_CHAT_LIMITER || typeof env.BRO_CHAT_LIMITER.limit !== "function") {
+        return json({ ok: false, error: "Rate limiter belum dikonfigurasi. Aktifkan BRO_CHAT_LIMITER di Cloudflare Worker." }, 503, headers);
+      }
+      try {
+        const decision = await env.BRO_CHAT_LIMITER.limit({ key: await rateLimitKey(request) });
+        if (!decision || decision.success !== true) {
+          return json({ ok: false, error: "Batas penggunaan tercapai. Coba lagi sekitar satu menit lagi." }, 429, Object.assign({}, headers, { "Retry-After": "60" }));
+        }
+      } catch (_) {
+        return json({ ok: false, error: "Pemeriksaan batas penggunaan gagal. Permintaan dihentikan demi keamanan." }, 503, headers);
+      }
+      const parsed = await readJsonLimited(request);
+      if (parsed.tooLarge) return json({ ok: false, error: "Ukuran request melebihi batas 64 KB." }, 413, headers);
+      if (parsed.invalid) return json({ ok: false, error: "Body JSON tidak valid." }, 400, headers);
+      const result = await chat(parsed.body || {}, env);
+      if (!result.ok) return json({ ok: false, error: result.error, failures: result.failures || [] }, result.status || 502, headers);
+      return json(result, 200, headers);
     }
 
     return json({ ok: false, error: "Endpoint tidak ditemukan. Gunakan /health atau /chat." }, 404, headers);
