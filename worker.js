@@ -109,11 +109,13 @@ function modelFor(provider, env) {
   return clean(env[key], 160) || DEFAULTS[key] || "";
 }
 
-async function fetchTimed(url, init, ms) {
+async function fetchAndParse(url, init, provider, model) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ms || PROVIDER_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
   try {
-    return await fetch(url, Object.assign({}, init, { signal: controller.signal }));
+    const response = await fetch(url, Object.assign({}, init, { signal: controller.signal }));
+    // Keep the timeout active while reading/parsing the response body too.
+    return await parseProvider(response, provider, model);
   } finally {
     clearTimeout(timer);
   }
@@ -130,7 +132,7 @@ async function callGemini(body, env) {
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
   }));
-  const response = await fetchTimed(url, {
+  return fetchAndParse(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
     body: JSON.stringify({
@@ -138,8 +140,7 @@ async function callGemini(body, env) {
       contents,
       generationConfig: { maxOutputTokens: 3000, temperature: 0.65 },
     }),
-  });
-  return parseProvider(response, "gemini", model);
+  }, "gemini", model);
 }
 
 async function callOpenAICompatible(provider, body, env) {
@@ -155,7 +156,7 @@ async function callOpenAICompatible(provider, body, env) {
     deepseek: { key: env.DEEPSEEK_API_KEY, url: "https://api.deepseek.com/chat/completions", model: modelFor("deepseek", env), extra: {} },
   }[provider];
 
-  const response = await fetchTimed(cfg.url, {
+  return fetchAndParse(cfg.url, {
     method: "POST",
     headers: Object.assign({ "Content-Type": "application/json", Authorization: "Bearer " + cfg.key }, cfg.extra),
     body: JSON.stringify({
@@ -164,18 +165,16 @@ async function callOpenAICompatible(provider, body, env) {
       max_tokens: 3000,
       temperature: 0.65,
     }),
-  });
-  return parseProvider(response, provider, cfg.model);
+  }, provider, cfg.model);
 }
 
 async function callAnthropic(body, env) {
   const model = modelFor("anthropic", env);
-  const response = await fetchTimed("https://api.anthropic.com/v1/messages", {
+  return fetchAndParse("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({ model, max_tokens: 3000, system: body.system, messages: messagesFor(body) }),
-  });
-  return parseProvider(response, "anthropic", model);
+  }, "anthropic", model);
 }
 
 async function parseProvider(response, provider, model) {
