@@ -11,7 +11,7 @@ const JSON_HEADERS = {
 
 const PERSONAS = { chatgpt: "chatgpt", claude: "claude", gemini: "gemini", deepseek: "deepseek", auto: "auto" };
 const DEFAULTS = {
-  GEMINI_MODEL: "gemini-2.5-flash",
+  GEMINI_MODEL: "gemini-3.8-flash",
   OPENROUTER_MODEL: "openrouter/free",
   GROQ_MODEL: "openai/gpt-oss-20b",
   OPENAI_MODEL: "gpt-4o-mini",
@@ -140,7 +140,7 @@ async function callGemini(body, env, timeoutMs) {
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: body.system }] },
       contents,
-      generationConfig: { maxOutputTokens: 3000 },
+      generationConfig: { maxOutputTokens: 3000, thinkingConfig: { thinkingLevel: "low" } },
     }),
   }, "gemini", model, timeoutMs);
 }
