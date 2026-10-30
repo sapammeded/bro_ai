@@ -1,5 +1,7 @@
 const assert = require('node:assert/strict');
 const H = require('./handoff.js');
+const fs = require('node:fs');
+const frontend = fs.readFileSync(require.resolve('./index.html'), 'utf8');
 
 assert.deepEqual(Object.keys(H.SITES).sort(), ['chatgpt','claude','deepseek','gemini']);
 assert.equal(H.buildPrompt('  halo  ', [], {withContext:false}), 'halo');
@@ -18,4 +20,12 @@ assert.match(H.target('chatgpt','tes').url, /^https:\/\/chatgpt\.com\/\?q=/);
 const long = H.target('chatgpt', 'x'.repeat(3000));
 assert.equal(long.prefilled, false);
 assert.equal(long.url, 'https://chatgpt.com/');
-console.log('12 handoff tests passed');
+// Frontend security regression checks: bearer token is session-scoped, not persisted in localStorage.
+assert.match(frontend, /sessionStorage\\.setItem\\('bro_ai_access_token_v1'/);
+assert.match(frontend, /sessionStorage\\.removeItem\\('bro_ai_access_token_v1'/);
+assert.match(frontend, /const t=tok===undefined\\?currentToken\\(\\):tok/);
+assert.doesNotMatch(frontend, /settings\\.token\\s*=/);
+assert.match(frontend, /function esc\\(s\\)\\{return String\\(s\\)\\.replace\\(\\/\\[&<>/);
+assert.match(frontend, /body\\.innerHTML=role==='user'\\?esc\\(content\\):md\\(content\\)/);
+assert.match(frontend, /function md\\(s\\)\\{let t=esc\\(s\\)/);
+console.log('12 handoff tests + 7 frontend security checks passed');
