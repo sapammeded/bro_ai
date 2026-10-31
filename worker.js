@@ -149,14 +149,25 @@ async function callGemini(body, env, timeoutMs) {
   }, "gemini", model, timeoutMs);
 }
 
+async function callXAI(body, env, timeoutMs) {
+  const model = modelFor("xai", env);
+  const input = [{ role: "system", content: body.system }].concat(messagesFor(body));
+  return fetchAndParse("https://api.x.ai/v1/responses", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + env.XAI_API_KEY },
+    body: JSON.stringify({
+      model,
+      input,
+      max_output_tokens: 3000,
+      temperature: 0.7,
+      top_p: 0.95,
+      store: false,
+    }),
+  }, "xai", model, timeoutMs);
+}
+
 async function callOpenAICompatible(provider, body, env, timeoutMs) {
   const cfg = {
-    xai: {
-      key: env.XAI_API_KEY,
-      url: "https://api.x.ai/v1/chat/completions",
-      model: modelFor("xai", env),
-      extra: {},
-    },
     openrouter: {
       key: env.OPENROUTER_API_KEY,
       url: "https://openrouter.ai/api/v1/chat/completions",
@@ -226,7 +237,11 @@ async function parseProvider(response, provider, model) {
     throw error;
   }
   let reply = "";
-  if (provider === "gemini") {
+  if (provider === "xai") {
+    reply = (data.output || []).flatMap((item) => item.content || [])
+      .filter((part) => part.type === "output_text")
+      .map((part) => part.text || "").join("\n");
+  } else if (provider === "gemini") {
     reply = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts || [])
       .map((p) => p.text || "").join("\n");
   } else if (provider === "anthropic") {
@@ -246,6 +261,7 @@ async function parseProvider(response, provider, model) {
 async function runProvider(provider, body, env, timeoutMs) {
   if (provider === "gemini") return callGemini(body, env, timeoutMs);
   if (provider === "anthropic") return callAnthropic(body, env, timeoutMs);
+  if (provider === "xai") return callXAI(body, env, timeoutMs);
   return callOpenAICompatible(provider, body, env, timeoutMs);
 }
 
