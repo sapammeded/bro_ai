@@ -159,8 +159,6 @@ async function callXAI(body, env, timeoutMs) {
       model,
       input,
       max_output_tokens: 3000,
-      temperature: 0.7,
-      top_p: 0.95,
       store: false,
     }),
   }, "xai", model, timeoutMs);
