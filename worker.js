@@ -236,7 +236,7 @@ async function parseProvider(response, provider, model) {
       upstream && typeof upstream.code === "string" ? upstream.code : "";
     const error = new Error("Upstream provider request failed.");
     error.status = response.status;
-    error.providerDetail = clean(detail, 240).replace(/[\\r\\n\\t]+/g, " ");
+    error.providerDetail = provider === "xai" ? clean(detail, 240).replace(/[\\r\\n\\t]+/g, " ") : "";
     throw error;
   }
   let reply = "";
