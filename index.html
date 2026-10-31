@@ -120,14 +120,14 @@ function updModeUI(){
  $('modeDirect').classList.toggle('on',m==='direct');$('modeSite').classList.toggle('on',m==='handoff');
  $('modeNote').textContent=m==='handoff'
   ?'Situs resmi dibuka di tab baru. Pesan disalin untuk ditempel; balasan tidak otomatis kembali ke BRO AI.'
-  :'Worker mencoba Gemini free tier lalu OpenRouter free. Provider lain opsional; jalur berbayar tetap nonaktif secara default.';
+  :'Worker mencoba Gemini free tier, lalu Grok jika XAI_API_KEY tersedia, kemudian OpenRouter free. Penggunaan Grok API mengikuti tarif xAI.';
  $('hoCtx').checked=settings.handoffCtx!==false;
 }
 function setMode(mode){
  settings.modes=settings.modes||{};
  settings.modes[activeAI]=mode==='direct'?'direct':'handoff';
  saveSettings();updModeUI();
- if(modeOf(activeAI)==='direct'&&activeAI!=='gemini')toast('Mode API untuk '+personas[activeAI].name+' mungkin ditolak Worker demi kebijakan Rp0.');
+ if(modeOf(activeAI)==='direct'&&activeAI!=='gemini'&&activeAI!=='grok')toast('Mode API untuk '+personas[activeAI].name+' mungkin ditolak Worker demi kebijakan Rp0.');
 }
 $('modeDirect').addEventListener('click',()=>setMode('direct'));
 $('modeSite').addEventListener('click',()=>setMode('handoff'));
