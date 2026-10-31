@@ -315,6 +315,8 @@ test("routes the Grok persona directly to xAI with the configured model", async 
     assert.equal(capturedBody.input[1].content, "Halo");
     assert.equal(capturedBody.max_output_tokens, 3000);
     assert.equal(capturedBody.store, false);
+    assert.equal("temperature" in capturedBody, false);
+    assert.equal("top_p" in capturedBody, false);
     assert.equal(data.provider, "xai");
     assert.equal(data.reply, "Grok aktif.");
   } finally {
