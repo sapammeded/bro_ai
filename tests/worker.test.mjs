@@ -287,3 +287,33 @@ test("defaults Gemini to 3.8 Flash with low thinking", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("routes the Grok persona directly to xAI with the configured model", async () => {
+  const originalFetch = globalThis.fetch;
+  let capturedUrl = "";
+  let capturedHeaders;
+  let capturedBody;
+  globalThis.fetch = async (url, init) => {
+    capturedUrl = String(url);
+    capturedHeaders = init.headers;
+    capturedBody = JSON.parse(init.body);
+    return new Response(JSON.stringify({
+      model: "grok-4.7",
+      choices: [{ message: { content: "Grok aktif." } }],
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+  };
+  try {
+    const env = Object.assign(baseEnv(), { XAI_API_KEY: "fake-xai" });
+    const res = await chatRequest({ provider: "grok", message: "Halo" }, env);
+    const data = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(capturedUrl, "https://api.x.ai/v1/chat/completions");
+    assert.equal(capturedHeaders.Authorization, "Bearer fake-xai");
+    assert.equal(capturedBody.model, "grok-4.7");
+    assert.equal(data.provider, "xai");
+    assert.equal(data.reply, "Grok aktif.");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

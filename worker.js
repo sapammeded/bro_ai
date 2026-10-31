@@ -9,9 +9,10 @@ const JSON_HEADERS = {
   "Referrer-Policy": "no-referrer",
 };
 
-const PERSONAS = { chatgpt: "chatgpt", claude: "claude", gemini: "gemini", deepseek: "deepseek", auto: "auto" };
+const PERSONAS = { chatgpt: "chatgpt", claude: "claude", gemini: "gemini", deepseek: "deepseek", grok: "grok", auto: "auto" };
 const DEFAULTS = {
   GEMINI_MODEL: "gemini-3.8-flash",
+  XAI_MODEL: "grok-4.7",
   OPENROUTER_MODEL: "openrouter/free",
   GROQ_MODEL: "openai/gpt-oss-20b",
   OPENAI_MODEL: "gpt-4o-mini",
@@ -85,6 +86,7 @@ function historyFrom(value) {
 function availableProviders(env) {
   return {
     gemini: Boolean(env.GEMINI_API_KEY),
+    xai: Boolean(env.XAI_API_KEY),
     openrouter: Boolean(env.OPENROUTER_API_KEY),
     groq: Boolean(env.GROQ_API_KEY && String(env.GROQ_ENABLE || "") === "1"),
     openai: Boolean(paidEnabled(env) && env.OPENAI_API_KEY),
@@ -100,7 +102,9 @@ function candidates(persona, env) {
     const preferred = { chatgpt: "openai", claude: "anthropic", deepseek: "deepseek" }[persona];
     if (preferred && available[preferred]) list.push(preferred);
   }
+  if (persona === "grok" && available.xai) list.push("xai");
   if (available.gemini) list.push("gemini");
+  if (persona !== "grok" && available.xai) list.push("xai");
   if (available.openrouter) list.push("openrouter");
   if (available.groq) list.push("groq");
   return Array.from(new Set(list));
@@ -147,6 +151,12 @@ async function callGemini(body, env, timeoutMs) {
 
 async function callOpenAICompatible(provider, body, env, timeoutMs) {
   const cfg = {
+    xai: {
+      key: env.XAI_API_KEY,
+      url: "https://api.x.ai/v1/chat/completions",
+      model: modelFor("xai", env),
+      extra: {},
+    },
     openrouter: {
       key: env.OPENROUTER_API_KEY,
       url: "https://openrouter.ai/api/v1/chat/completions",
@@ -301,7 +311,7 @@ async function chat(body, env) {
   const normalized = { message, system, history: historyFrom(body.history || []) };
   const chain = candidates(persona, env);
   if (!chain.length) {
-    return { error: "Belum ada provider AI yang siap. Isi GEMINI_API_KEY atau OPENROUTER_API_KEY di Worker Secrets. Provider berbayar memerlukan BRO_ALLOW_PAID=1.", status: 503 };
+    return { error: "Belum ada provider AI yang siap. Isi GEMINI_API_KEY, XAI_API_KEY, atau OPENROUTER_API_KEY di Worker Secrets. Provider berbayar memerlukan BRO_ALLOW_PAID=1.", status: 503 };
   }
   const failures = [];
   const deadline = Date.now() + MAX_CHAT_DURATION_MS;
