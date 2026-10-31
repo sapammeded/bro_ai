@@ -232,8 +232,13 @@ async function parseProvider(response, provider, model) {
   let data = {};
   try { data = JSON.parse(raw); } catch (_) {}
   if (!response.ok) {
+    const upstream = data && data.error;
+    const detail = typeof upstream === "string" ? upstream :
+      upstream && typeof upstream.message === "string" ? upstream.message :
+      upstream && typeof upstream.code === "string" ? upstream.code : "";
     const error = new Error("Upstream provider request failed.");
     error.status = response.status;
+    error.providerDetail = clean(detail, 240).replace(/[\\r\\n\\t]+/g, " ");
     throw error;
   }
   let reply = "";
@@ -342,7 +347,7 @@ async function chat(body, env) {
       const result = await runProvider(provider, normalized, env, Math.min(PROVIDER_TIMEOUT_MS, remainingMs));
       return { ok: true, persona, provider: result.provider, model: result.model, reply: result.reply, fallbackUsed: i > 0 };
     } catch (error) {
-      failures.push({ provider, status: Number(error && error.status || 0) });
+      failures.push({ provider, status: Number(error && error.status || 0), detail: clean(error && error.providerDetail, 240) });
       if (Date.now() >= deadline) {
         failures.push({ provider: "deadline", status: 504 });
         break;
