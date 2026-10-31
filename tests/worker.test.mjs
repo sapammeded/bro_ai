@@ -300,7 +300,7 @@ test("routes the Grok persona directly to xAI with the configured model", async 
     capturedBody = JSON.parse(init.body);
     return new Response(JSON.stringify({
       model: "grok-4.7",
-      choices: [{ message: { content: "Grok aktif." } }],
+      output: [{ type: "message", content: [{ type: "output_text", text: "Grok aktif." }] }],
     }), { status: 200, headers: { "Content-Type": "application/json" } });
   };
   try {
@@ -308,9 +308,13 @@ test("routes the Grok persona directly to xAI with the configured model", async 
     const res = await chatRequest({ provider: "grok", message: "Halo" }, env);
     const data = await res.json();
     assert.equal(res.status, 200);
-    assert.equal(capturedUrl, "https://api.x.ai/v1/chat/completions");
+    assert.equal(capturedUrl, "https://api.x.ai/v1/responses");
     assert.equal(capturedHeaders.Authorization, "Bearer fake-xai");
     assert.equal(capturedBody.model, "grok-4.7");
+    assert.equal(capturedBody.input[0].role, "system");
+    assert.equal(capturedBody.input[1].content, "Halo");
+    assert.equal(capturedBody.max_output_tokens, 3000);
+    assert.equal(capturedBody.store, false);
     assert.equal(data.provider, "xai");
     assert.equal(data.reply, "Grok aktif.");
   } finally {
